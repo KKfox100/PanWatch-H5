@@ -3,7 +3,15 @@
   "version": "0.1.0-h5",
   "private": true,
   "description": "盯盘侠 PanWatch 的移动端 H5 版本 · 莫兰迪配色 · 可部署到 Cloudflare Workers",
-  "keywords": ["panwatch", "h5", "stock", "a-share", "cloudflare-workers", "morandi", "pwa"],
+  "keywords": [
+    "panwatch",
+    "h5",
+    "stock",
+    "a-share",
+    "cloudflare-workers",
+    "morandi",
+    "pwa"
+  ],
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,12 +21,19 @@
     "preview": "node scripts/serve.mjs 5183",
     "icons": "python scripts/gen-icons.py",
     "check": "node scripts/check.mjs",
-    "e2e": "node scripts/e2e.cjs"
+    "audit:contrast": "node scripts/audit-contrast.mjs --md --json",
+    "e2e": "node scripts/e2e.cjs",
+    "e2e:design": "node scripts/e2e-design.cjs",
+    "verify": "node scripts/check.mjs && node scripts/audit-contrast.mjs && node scripts/e2e.cjs && node scripts/e2e-design.cjs"
   },
   "devDependencies": {
     "wrangler": "^4.137.0"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@cloudflare/workerd-windows-64": "^1.20260924.1",
+    "@esbuild/win32-x64": "^0.28.2"
   }
 }

@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>盯盘侠 PanWatch · 设计规范 v2</title>
+<meta name="description" content="盯盘侠 PanWatch H5 的界面设计规范：色彩、字体、间距、组件、页面与可访问性。所有对比度数据由脚本实测生成。">
+<link rel="icon" href="../public/icon.svg">
+<!-- 直接加载应用的三层样式。
+     规范页里展示的组件用的就是应用自己的 class，不是另画一套 ——
+     另画一套的下场是规范好看、实现走样，两边慢慢分叉。
+     spec.css 放最后，只覆盖规范页自己的排版。 -->
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/components.css">
+<link rel="stylesheet" href="spec.css">
+<script>
+/* 主题防闪：必须在 CSS 之后、body 之前跑。
+   和 index.html 里那段是同一套逻辑 —— 先读 localStorage，再决定 data-theme。
+   放在这里而不是 spec.js 里，是因为模块脚本是 defer 的，那时首屏已经画完了。 */
+(function () {
+  try {
+    var t = localStorage.getItem('panwatch-h5:v1');
+    var mode = t ? (JSON.parse(t).settings || {}).theme : null;
+    if (mode && mode !== 'system') document.documentElement.setAttribute('data-theme', mode);
+  } catch (e) { /* 隐私模式下 localStorage 会抛，忽略即可 */ }
+})();
+</script>
+</head>
+<body>
+
+<header class="spec-top">
+  <span class="spec-top__brand">
+    <span class="spec-top__mark" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 17l5-6 4 3 5-8 4 5"/><path d="M3 21h18"/>
+      </svg>
+    </span>
+    盯盘侠 · 设计规范
+  </span>
+  <span class="spec-top__sub">v2.0</span>
+  <span class="spec-top__spacer"></span>
+  <div class="theme-switch" role="group" aria-label="主题切换">
+    <button type="button" data-theme-set="light" aria-pressed="false">浅色</button>
+    <button type="button" data-theme-set="dark" aria-pressed="false">深色</button>
+    <button type="button" data-theme-set="system" aria-pressed="false">跟随系统</button>
+  </div>
+</header>
+
+<div class="spec-wrap">
+
+  <nav class="spec-toc" aria-label="目录">
+    <div class="spec-top__sub" style="display:none"></div>
+    <p class="spec-toc__title">目录</p>
+    <ul class="spec-toc__list">
+      <li><a href="#overview">00 概览</a></li>
+      <li><a href="#habits">01 用户与信息架构</a></li>
+      <li><a href="#color">02 色彩</a></li>
+      <li><a href="#type">03 字体</a></li>
+      <li><a href="#space">04 间距与圆角</a></li>
+      <li><a href="#elevation">05 阴影与层级</a></li>
+      <li><a href="#icons">06 图标</a></li>
+      <li><a href="#motion">07 动效</a></li>
+      <li><a href="#components">08 组件</a></li>
+      <li><a href="#pages">09 页面</a></li>
+      <li><a href="#a11y">10 可访问性</a></li>
+    </ul>
+  </nav>
+
+  <main class="spec-main">
+
+    <!-- ================================================================
+         00 · 概览
+         ================================================================ -->
+    <section class="sec" id="overview">
+      <div class="sec__head">
+        <p class="sec__no">00</p>
+        <h1 class="sec__title">概览</h1>
+        <p class="sec__desc">
+          盯盘侠是一款 A 股盯盘 H5。这一版把界面从「能用」重做成「有据可依」——
+          所有颜色、字号、间距都不是拍出来的，而是从用户习惯推导、再用脚本验算过的。
+        </p>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:var(--sp-6)">
+        <div class="panel">
+          <p class="panel__title">配色缺陷</p>
+          <p style="font-size:var(--fs-3xl);font-weight:var(--fw-bold);font-family:var(--font-num);line-height:var(--lh-tight);color:var(--up-text)">47 → 0</p>
+          <p class="note" style="margin-top:var(--sp-2)">v1 有 47 组组合达不到 WCAG 2.1。逐条修完后实测 0 不达标。</p>
+        </div>
+        <div class="panel">
+          <p class="panel__title">字号档位</p>
+          <p style="font-size:var(--fs-3xl);font-weight:var(--fw-bold);font-family:var(--font-num);line-height:var(--lh-tight);color:var(--accent-text)">18 → 8</p>
+          <p class="note" style="margin-top:var(--sp-2)">v1 实际用了 18 种字号、8 种字重，其中 620/650/680 肉眼分不出来。</p>
+        </div>
+        <div class="panel">
+          <p class="panel__title">硬编码颜色</p>
+          <p style="font-size:var(--fs-3xl);font-weight:var(--fw-bold);font-family:var(--font-num);line-height:var(--lh-tight);color:var(--warn-text)">27 → 0</p>
+          <p class="note" style="margin-top:var(--sp-2)">散落在组件里的 13 个色值绕过了令牌体系，现已全部收编。</p>
+        </div>
+      </div>
+
+      <h2 class="sub">这一版改了什么</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        v1 的配色问题不在「颜色选得不好看」，而在<strong>一个颜色承担了太多角色</strong>。
+        比如 <code>--accent</code> 同时当按钮底、焦点环、链接文字和图标色 ——
+        结果四个场景全都不达标（2.58–3.05:1）。
+      </p>
+      <p class="note" style="margin-bottom:var(--sp-5)">
+        v2 按<strong>角色</strong>拆色。每个色相拆成四个独立令牌：
+        填充底、文字色、胶囊文字、胶囊底，各自独立达标，互不借用。
+        数值全部由 <code>scripts/solve-tokens.mjs</code> 在 OKLCH 空间反解得到 ——
+        手工目测的极限大约在 3:1，差的那 1.5 眼睛判断不出来。
+      </p>
+
+      <div class="panel panel--sunken">
+        <p class="panel__title">怎么验证这套规范</p>
+        <ul class="rule-list">
+          <li class="rule">
+            <span class="rule__no">1</span>
+            <div class="rule__body">
+              <p class="rule__title"><code>npm run audit:contrast</code></p>
+              <p class="rule__desc">按 WCAG 2.1 逐组合实测对比度，同时扫描绕过令牌的硬编码颜色。退出码非 0 即表示有缺陷。</p>
+            </div>
+          </li>
+          <li class="rule">
+            <span class="rule__no">2</span>
+            <div class="rule__body">
+              <p class="rule__title"><code>npm run check</code></p>
+              <p class="rule__desc">静态自检：模块引用、Service Worker 预缓存清单、图标名、事件处理函数覆盖。</p>
+            </div>
+          </li>
+          <li class="rule">
+            <span class="rule__no">3</span>
+            <div class="rule__body">
+              <p class="rule__title"><code>npm run e2e</code></p>
+              <p class="rule__desc">真实 Chrome 跑端到端，其中包含「渲染出来的文字对比度是否真的达标」—— 只验令牌不够，令牌对了但组件用错角色，用户看到的还是糊的。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         01 · 用户与信息架构
+         ================================================================ -->
+    <section class="sec" id="habits">
+      <div class="sec__head">
+        <p class="sec__no">01</p>
+        <h1 class="sec__title">用户与信息架构</h1>
+        <p class="sec__desc">
+          界面上的每个决定都该能追溯到一条用户习惯。这一节先把习惯写清楚，
+          后面所有取舍都从这里推导。
+        </p>
+      </div>
+
+      <h2 class="sub">三类典型用户</h2>
+      <div class="grid-3">
+        <div class="panel">
+          <p class="panel__title">盘中快查型</p>
+          <p style="font-weight:var(--fw-medium);font-size:var(--fs-md);margin-bottom:var(--sp-2)">上班族 · 交易时段偷空</p>
+          <p class="note">9:30–11:30 / 13:00–15:00 之间打开，每次 20–60 秒。多数时候在电梯、地铁、会议间隙，<strong>单手操作</strong>。</p>
+          <p class="note" style="margin-top:var(--sp-3)">要的是一眼看到「今天赚了多少」和「持仓里谁在动」。</p>
+        </div>
+        <div class="panel">
+          <p class="panel__title">盘后复盘型</p>
+          <p style="font-weight:var(--fw-medium);font-size:var(--fs-md);margin-bottom:var(--sp-2)">有闲的散户 · 晚间</p>
+          <p class="note">20:00–23:00，有 10–30 分钟。愿意看净值曲线、AI 分析和机会扫描，但<strong>不想读长文</strong>。</p>
+          <p class="note" style="margin-top:var(--sp-3)">这也是深色模式使用占比最高的时段。</p>
+        </div>
+        <div class="panel">
+          <p class="panel__title">条件盯守型</p>
+          <p style="font-weight:var(--fw-medium);font-size:var(--fs-md);margin-bottom:var(--sp-2)">设了提醒等触发</p>
+          <p class="note">自己划了线（到价、涨跌幅、技术指标），剩下交给系统。<strong>提醒太多会麻木</strong>，所以宁少勿滥。</p>
+        </div>
+      </div>
+
+      <h2 class="sub">习惯 → 对策</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        下表是设计的推导链。左边是观察到的行为，右边是具体落到界面上的决定 ——
+        每条对策都能在后面章节里找到对应的实现。
+      </p>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <colgroup><col style="width:26%"><col style="width:32%"><col style="width:42%"></colgroup>
+          <thead>
+            <tr><th>用户习惯</th><th>观察</th><th>设计对策</th></tr>
+          </thead>
+          <tbody id="habit-rows"></tbody>
+        </table>
+      </div>
+
+      <h2 class="sub">设计原则</h2>
+      <div class="rule-list" id="principles"></div>
+
+      <h2 class="sub">信息架构</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        五个一级页签 + 两个二级页。一级页签用固定底栏承载，二级页从右侧推入并保留返回。
+        层级刻意压得很浅 —— 快查型用户平均只待 40 秒，藏太深等于没有。
+      </p>
+      <div class="ia" id="ia-tree" role="img" aria-label="盯盘侠信息架构树"></div>
+    </section>
+
+    <!-- ================================================================
+         02 · 色彩
+         ================================================================ -->
+    <section class="sec" id="color">
+      <div class="sec__head">
+        <p class="sec__no">02</p>
+        <h1 class="sec__title">色彩</h1>
+        <p class="sec__desc">
+          莫兰迪静物画的灰调：所有颜色掺一层暖灰，饱和度压到最低，明度拉开但不刺眼。
+          文字用暖炭灰而非纯黑，背景用燕麦米白而非纯白 —— 高对比虽然「清楚」，
+          但久看会累，而且廉价。
+        </p>
+      </div>
+
+      <p class="note" style="margin-bottom:var(--sp-5)">
+        每张色卡下方的比值是<strong>实测</strong>对比度，不是标注值。
+        页面加载时用 WCAG 2.1 相对亮度公式现算，所以它永远和令牌文件一致。
+        点击色卡可复制令牌名。
+      </p>
+
+      <h2 class="sub">中性面 · 按空间角色命名</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        v1 用的是 <code>surface-1/2/3</code> 这种编号。编号的问题不是丑，是<strong>看不出该用哪一个</strong>，
+        最后只能靠翻代码猜。改成空间角色名之后，一眼就知道这块面在界面上处于什么位置。
+        浅色主题下「越高越亮」：页面底最暗，浮层最亮。
+      </p>
+      <div class="swatches" id="sw-surfaces"></div>
+
+      <h2 class="sub">文字 · 四级</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        解算基准取的是<strong>最不利的那个面</strong>（浅色下是最暗的嵌入块，深色下是最亮的浮层）。
+        这样得到的是一个强保证：任何一层文字放到任何一层中性面上都 ≥4.5:1，不必再记搭配表。
+      </p>
+      <div class="swatches" id="sw-text"></div>
+
+      <h2 class="sub">语义色 · 六色相 × 四角色</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        这是 v2 最关键的结构变化。每个色相拆成四个角色，<strong>各自独立达标，不跨角色借用</strong> ——
+        v1 的坑就是借出来的：填充底和文字色共用一个值，必然有一头不达标。
+      </p>
+      <div id="semantic-blocks"></div>
+
+      <h2 class="sub">涨跌色 · 中国市场习惯</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        涨用红、跌用绿，与欧美相反。莫兰迪化之后是陶土红与灰绿，久看不累。
+        但<strong>颜色不能是唯一信号</strong>：同时配 <code>+</code>/<code>−</code> 符号与箭头，
+        色觉障碍用户才读得出来。
+      </p>
+      <div class="panel">
+        <div class="grid-2">
+          <div>
+            <p class="panel__title">大号数字（≥24px，阈值 3:1）</p>
+            <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+              <p style="font-family:var(--font-num);font-size:var(--fs-2xl);font-weight:var(--fw-bold);color:var(--up-text);letter-spacing:var(--ls-tight)">+29.44万</p>
+              <p style="font-family:var(--font-num);font-size:var(--fs-2xl);font-weight:var(--fw-bold);color:var(--down-text);letter-spacing:var(--ls-tight)">−8.17万</p>
+              <p style="font-family:var(--font-num);font-size:var(--fs-2xl);font-weight:var(--fw-bold);color:var(--flat-text);letter-spacing:var(--ls-tight)">0.00</p>
+            </div>
+          </div>
+          <div>
+            <p class="panel__title">小号标签（阈值 4.5:1）</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--sp-2)">
+              <span class="sample" style="background:var(--up-soft);color:var(--up-on-soft)">+2.14%</span>
+              <span class="sample" style="background:var(--down-soft);color:var(--down-on-soft)">−0.86%</span>
+              <span class="sample" style="background:var(--flat-soft);color:var(--flat-text)">0.00%</span>
+              <span class="sample" style="background:var(--surface-sunken);color:var(--up-text)">▲ 涨停</span>
+              <span class="sample" style="background:var(--surface-sunken);color:var(--down-text)">▼ 跌停</span>
+            </div>
+            <p class="note" style="margin-top:var(--sp-4)">
+              同一个色相在大号和小号下的阈值不同（3:1 vs 4.5:1），
+              所以 <code>--up-text</code> 比 <code>--up-fill</code> 深一档。
+              大号数字可以直接用填充色，小号标签必须用文字色。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="sub">描边 · 四级</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        这里有一条容易搞混的界线：<strong>分隔线是装饰性的</strong>（WCAG 1.4.11 明确豁免），
+        可以做到 1.1:1 只负责分组；但<strong>输入框、开关的边框承载「这里可以操作」的信息</strong>，
+        属于非文本 UI 组件，必须 ≥3:1。这两件事不能共用一个值。
+      </p>
+      <div class="swatches" id="sw-lines"></div>
+
+      <h2 class="sub">焦点环</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        两层结构：内层用页面底色把控件和环隔开，外层才是强调色。
+        单层环压在彩色按钮上会糊在一起看不清。
+      </p>
+      <div class="stage">
+        <button type="button" class="demo-btn demo-btn--primary" style="box-shadow:var(--focus-ring)">聚焦状态</button>
+        <button type="button" class="demo-btn">普通状态</button>
+        <span class="note" style="font-size:var(--fs-2xs);color:var(--ink-3);font-family:var(--font-num)">--focus-ring</span>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         03 · 字体
+         ================================================================ -->
+    <section class="sec" id="type">
+      <div class="sec__head">
+        <p class="sec__no">03</p>
+        <h1 class="sec__title">字体</h1>
+        <p class="sec__desc">
+          字阶只留 8 档。超过 8 档就会出现「13 还是 14」这种没人能稳定判断的选择，
+          最后变成随手写 —— v1 实际用了 18 种字号，就是这么来的。
+        </p>
+      </div>
+
+      <h2 class="sub">字阶 · 8 档</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        正文基准定在 15px。中文在 14px 以下笔画开始糊，15px 是移动端的实用下限。
+        最小字号 11px，不再往下 —— 再小就只是为了塞内容，不是为了让人读。
+      </p>
+      <div class="panel typescale" id="typescale"></div>
+
+      <h2 class="sub">字重 · 只用三档</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        v1 用了 400/500/550/600/620/650/680/700 八种字重。
+        问题是中文字体通常只有 400 和 700 两个真实字重，620 和 650 会被渲染成同一个 ——
+        写了等于没写，还让人以为有区别。收敛到三档，每档都有明确用途。
+      </p>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <colgroup><col style="width:22%"><col style="width:14%"><col style="width:64%"></colgroup>
+          <thead><tr><th>令牌</th><th>值</th><th>用途</th></tr></thead>
+          <tbody id="weights"></tbody>
+        </table>
+      </div>
+
+      <h2 class="sub">行高与字距</h2>
+      <div class="grid-2">
+        <div class="panel" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <colgroup><col style="width:38%"><col style="width:16%"><col style="width:46%"></colgroup>
+            <thead><tr><th>令牌</th><th>值</th><th>用途</th></tr></thead>
+            <tbody id="lineheights"></tbody>
+          </table>
+        </div>
+        <div class="panel" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <colgroup><col style="width:38%"><col style="width:16%"><col style="width:46%"></colgroup>
+            <thead><tr><th>令牌</th><th>值</th><th>用途</th></tr></thead>
+            <tbody id="letterspacings"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <h2 class="sub">数字排版</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        金融界面对数字的要求比一般界面苛刻，这里有两条硬规则。
+      </p>
+      <div class="grid-2">
+        <div class="panel">
+          <p class="panel__title">必须等宽</p>
+          <p class="note" style="margin-bottom:var(--sp-3)">
+            数字全部走 <code>--font-num</code> 并开 <code>tabular-nums</code>。
+            比例字宽下 <code>1</code> 比 <code>8</code> 窄，价格一跳整行就在抖，
+            用户会下意识重新找位置。
+          </p>
+          <div class="stage stage--col" style="gap:var(--sp-2)">
+            <span class="stage__label">等宽 · 跳动时行宽不变</span>
+            <p style="font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:var(--fs-lg)">¥ 1,847,332.60</p>
+            <p style="font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:var(--fs-lg)">¥ 1,111,111.11</p>
+            <span class="stage__label" style="margin-top:var(--sp-3)">比例字宽 · 行宽会变</span>
+            <p style="font-size:var(--fs-lg)">¥ 1,847,332.60</p>
+            <p style="font-size:var(--fs-lg)">¥ 1,111,111.11</p>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="panel__title">符号在数字前</p>
+          <p class="note" style="margin-bottom:var(--sp-3)">
+            正负号、货币符号都放在数字前面，负数用真正的减号 <code>−</code>（U+2212）
+            而不是连字符 <code>-</code> —— 减号与数字等宽，对齐全。
+          </p>
+          <div class="stage stage--col" style="gap:var(--sp-2)">
+            <span class="stage__label">推荐</span>
+            <p style="font-family:var(--font-num);font-size:var(--fs-lg);color:var(--up-text)">+29.44万</p>
+            <p style="font-family:var(--font-num);font-size:var(--fs-lg);color:var(--down-text)">−8.17万</p>
+            <span class="stage__label" style="margin-top:var(--sp-3)">避免</span>
+            <p style="font-family:var(--font-num);font-size:var(--fs-lg);color:var(--down-text)">-8.17万</p>
+            <p style="font-family:var(--font-num);font-size:var(--fs-lg)">8.17万-</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         04 · 间距与圆角
+         ================================================================ -->
+    <section class="sec" id="space">
+      <div class="sec__head">
+        <p class="sec__no">04</p>
+        <h1 class="sec__title">间距与圆角</h1>
+        <p class="sec__desc">
+          间距全部落在 4pt 栅格上。8pt 太粗，表达不了 12px 这种高频间距；
+          4pt 是既能表达足够层次、又不会产生「13 还是 14」困惑的最小栅格。
+        </p>
+      </div>
+
+      <h2 class="sub">间距 · 4pt 栅格</h2>
+      <div class="panel" id="spacing"></div>
+      <p class="note" style="margin-top:var(--sp-4)">
+        例外：小于 8px 的微调（<code>1px</code> 描边、<code>2px</code> 间隙、<code>3px</code> 内缩）
+        属于光学补偿，不进栅格。栅格约束的是<strong>结构性间距</strong>，
+        不是禁止所有非 4 倍数。
+      </p>
+
+      <h2 class="sub">圆角</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        莫兰迪的柔和感很大一部分来自圆角。规律是<strong>元素越小圆角越小</strong>：
+        26px 的徽标配 6px，卡片配 18px，胶囊全圆。乱配会让小元素显得臃肿。
+      </p>
+      <div class="grid-3" id="radii"></div>
+    </section>
+
+    <!-- ================================================================
+         05 · 阴影与层级
+         ================================================================ -->
+    <section class="sec" id="elevation">
+      <div class="sec__head">
+        <p class="sec__no">05</p>
+        <h1 class="sec__title">阴影与层级</h1>
+        <p class="sec__desc">
+          莫兰迪要的是「轻」，所以阴影极淡，而且<strong>带暖色</strong> ——
+          用中性灰的阴影压在米白底上会显脏，像蒙了层灰。
+        </p>
+      </div>
+
+      <h2 class="sub">阴影 · 四级</h2>
+      <div class="grid-4" id="shadows"></div>
+      <p class="note" style="margin-top:var(--sp-4)">
+        阴影只用来表达<strong>层</strong>，不用来装饰。同一屏内最多出现两级 ——
+        三级以上用户就分不清谁在谁上面了。底栏用 <code>--shadow-nav</code>，
+        它比普通阴影多一条向上的实线，因为底栏需要一条明确的分界而不是模糊的过渡。
+      </p>
+
+      <h2 class="sub">层级 · z-index</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        z-index 用命名令牌而不是随手写数字。随手写 999 的下场是三个月后
+        所有人都在写 9999。
+      </p>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <colgroup><col style="width:30%"><col style="width:14%"><col style="width:56%"></colgroup>
+          <thead><tr><th>令牌</th><th>值</th><th>用途</th></tr></thead>
+          <tbody id="zindex"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         06 · 图标
+         ================================================================ -->
+    <section class="sec" id="icons">
+      <div class="sec__head">
+        <p class="sec__no">06</p>
+        <h1 class="sec__title">图标</h1>
+        <p class="sec__desc">
+          全部手写 SVG，零图标库。统一 24 网格、1.7 描边、圆头圆角连接 ——
+          描边粗细不统一是「拼凑感」最主要的来源。
+        </p>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:var(--sp-5)">
+        <div class="panel">
+          <p class="panel__title">规格</p>
+          <ul class="rule-list" style="gap:var(--sp-2)">
+            <li class="note">画布 <code>24×24</code>，实际尺寸由 CSS 控制</li>
+            <li class="note">描边 <code>1.7</code>，<code>stroke-linecap: round</code>，<code>stroke-linejoin: round</code></li>
+            <li class="note">全部 <code>fill: none</code>，纯线性，不用填充图标</li>
+            <li class="note">颜色继承 <code>currentColor</code>，不写死</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <p class="panel__title">尺寸</p>
+          <ul class="rule-list" style="gap:var(--sp-2)">
+            <li class="note"><strong>21px</strong> — 底栏导航</li>
+            <li class="note"><strong>18px</strong> — 顶栏按钮</li>
+            <li class="note"><strong>15px</strong> — 区块标题、提示条</li>
+            <li class="note"><strong>13px</strong> — 行内小图标</li>
+            <li class="note"><strong>9px</strong> — 步骤点等极小场景</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <p class="panel__title">可点区域</p>
+          <p class="note">
+            图标视觉尺寸最小 13px，但<strong>可点区域一律撑到 44px</strong>。
+            做法是用 padding 或伪元素扩展命中区，视觉上仍保持紧凑 ——
+            靠加大图标来满足触控目标会让界面显得笨重。
+          </p>
+        </div>
+      </div>
+
+      <h2 class="sub">图标集</h2>
+      <div class="panel" id="icon-grid"></div>
+    </section>
+
+    <!-- ================================================================
+         07 · 动效
+         ================================================================ -->
+    <section class="sec" id="motion">
+      <div class="sec__head">
+        <p class="sec__no">07</p>
+        <h1 class="sec__title">动效</h1>
+        <p class="sec__desc">
+          动效只做一件事：<strong>说明状态怎么变的</strong>。
+          不解释变化的动画就是噪音，而且会让盯盘的人觉得卡。
+        </p>
+      </div>
+
+      <h2 class="sub">时长 · 三档</h2>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <colgroup><col style="width:24%"><col style="width:14%"><col style="width:62%"></colgroup>
+          <thead><tr><th>令牌</th><th>值</th><th>用途</th></tr></thead>
+          <tbody id="durations"></tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:var(--sp-4)">
+        超过 320ms 用户就会感到卡顿。盯盘场景尤其敏感 ——
+        用户要的是「现在是多少」，不是「它怎么变成这个数的」。
+      </p>
+
+      <h2 class="sub">缓动 · 四种</h2>
+      <div class="grid-4" id="easings"></div>
+      <p class="note" style="margin-top:var(--sp-4)">
+        入场用 <code>ease-out</code>（快起慢停），退场用 <code>ease-in</code>（慢起快走）——
+        这与物理直觉相反，但符合注意力规律：出现时希望它快点到，消失时希望它别磨蹭。
+      </p>
+
+      <h2 class="sub">降级</h2>
+      <div class="panel">
+        <p class="note">
+          系统开启「减弱动态效果」时，全部动画时长压到 <code>0.01ms</code>。
+          这不是可选项 —— 前庭功能障碍的用户会因位移动画产生眩晕，
+          而这类人群在长期盯盘的用户里并不少见。
+        </p>
+        <pre class="ia" style="margin-top:var(--sp-4)">@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}</pre>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         08 · 组件
+         ================================================================ -->
+    <section class="sec" id="components">
+      <div class="sec__head">
+        <p class="sec__no">08</p>
+        <h1 class="sec__title">组件</h1>
+        <p class="sec__desc">
+          每个组件都列出完整状态。只画「正常态」的规范是不完整的 ——
+          真实界面里用户看到的一半时间都是聚焦、禁用、加载、错误这些状态。
+        </p>
+      </div>
+      <div id="component-blocks"></div>
+    </section>
+
+    <!-- ================================================================
+         09 · 页面
+         ================================================================ -->
+    <section class="sec" id="pages">
+      <div class="sec__head">
+        <p class="sec__no">09</p>
+        <h1 class="sec__title">页面</h1>
+        <p class="sec__desc">
+          右侧是<strong>真实运行的应用</strong>，不是截图 —— 用 iframe 直接嵌的
+          <code>../index.html</code>。所以规范永远不会和实现对不上：
+          代码改了，这里立刻就变。
+        </p>
+      </div>
+      <p class="note" style="margin-bottom:var(--sp-5)">
+        下面四个是核心页面。每张都配一段「这一屏要解决什么」——
+        页面不是元素的集合，是对一个具体问题的回答。
+      </p>
+      <div id="page-blocks"></div>
+    </section>
+
+    <!-- ================================================================
+         10 · 可访问性
+         ================================================================ -->
+    <section class="sec" id="a11y">
+      <div class="sec__head">
+        <p class="sec__no">10</p>
+        <h1 class="sec__title">可访问性</h1>
+        <p class="sec__desc">
+          审美可以主观，可访问性是硬指标。这一节的数据全部由脚本实测，
+          页面加载时在浏览器里现算一遍 —— 不是抄进文档里的死数字。
+        </p>
+      </div>
+
+      <h2 class="sub">对比度实测</h2>
+      <p class="note" style="margin-bottom:var(--sp-4)">
+        阈值依据 WCAG 2.1：正文 <strong>4.5:1</strong>（SC 1.4.3 AA）、
+        大字与图形化文字 <strong>3:1</strong>、
+        非文本 UI 组件 <strong>3:1</strong>（SC 1.4.11）。
+        纯装饰性元素（分隔线、进度槽底）不受约束，单列为「豁免」。
+      </p>
+      <div class="panel" id="a11y-summary" style="margin-bottom:var(--sp-4)"></div>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <colgroup><col style="width:34%"><col style="width:20%"><col style="width:14%"><col style="width:16%"><col style="width:16%"></colgroup>
+          <thead><tr><th>组合</th><th>实际渲染</th><th>对比度</th><th>阈值</th><th>判定</th></tr></thead>
+          <tbody id="a11y-rows"></tbody>
+        </table>
+      </div>
+
+      <h2 class="sub">触控目标</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p class="panel__title">最小 44 × 44</p>
+          <p class="note" style="margin-bottom:var(--sp-4)">
+            iOS HIG 与 WCAG 2.5.5 的共同底线。下面三个方块都是 44px 命中区，
+            但视觉尺寸分别是 44 / 34 / 24 —— 命中区靠 padding 撑，
+            不靠把图标画大。
+          </p>
+          <div class="stage" style="gap:var(--sp-5)">
+            <span style="display:grid;place-items:center;width:44px;height:44px;background:var(--accent-fill);color:var(--ink-inverse);border-radius:var(--r-sm)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            <span style="display:grid;place-items:center;width:44px;height:44px">
+              <span style="display:grid;place-items:center;width:34px;height:34px;background:var(--surface-sunken);border-radius:var(--r-sm)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+              </span>
+            </span>
+            <span style="display:grid;place-items:center;width:44px;height:44px">
+              <span style="display:grid;place-items:center;width:24px;height:24px;background:var(--surface-sunken);border-radius:var(--r-xs)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </span>
+            </span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="panel__title">间距同样计入命中区</p>
+          <p class="note">
+            相邻可点元素之间的空隙不算命中区，所以两个 44px 按钮挨在一起时
+            必须留出足够间隙，否则用户会点到隔壁。
+            列表行高一律 ≥56px，正是这个原因。
+          </p>
+        </div>
+      </div>
+
+      <h2 class="sub">语义与焦点</h2>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+          <thead><tr><th>场景</th><th>做法</th></tr></thead>
+          <tbody id="a11y-semantics"></tbody>
+        </table>
+      </div>
+
+      <h2 class="sub">已知取舍</h2>
+      <div class="panel">
+        <ul class="rule-list">
+          <li class="rule">
+            <span class="rule__no">!</span>
+            <div class="rule__body">
+              <p class="rule__title">涨跌色对红绿色觉障碍不友好</p>
+              <p class="rule__desc">
+                红涨绿跌是市场约定，不能改。补偿手段是<strong>同时给出符号</strong>：
+                涨跌数字带 <code>+</code>/<code>−</code>，涨跌停带 <code>▲</code>/<code>▼</code>，
+                指数卡带箭头图标。颜色是加速识别的捷径，不是唯一通道。
+              </p>
+            </div>
+          </li>
+          <li class="rule">
+            <span class="rule__no">!</span>
+            <div class="rule__body">
+              <p class="rule__title">半透明毛玻璃背景会降低实际对比度</p>
+              <p class="rule__desc">
+                顶栏与底栏用了 <code>backdrop-filter</code> + 半透明底。
+                透过去的内容会拉低实际对比度，所以这两个面上的文字
+                只用 <code>--ink</code> / <code>--ink-2</code>，不用 <code>--ink-3</code>。
+                不透明度也压在 88% 以上，把影响控制在可忽略范围。
+              </p>
+            </div>
+          </li>
+          <li class="rule">
+            <span class="rule__no">!</span>
+            <div class="rule__body">
+              <p class="rule__title">装饰性分隔线远低于 3:1</p>
+              <p class="rule__desc">
+                <code>--line</code> 与 <code>--line-soft</code> 只有 1.1–1.3:1。
+                这是刻意的：它们只做视觉分组，去掉后信息依然完整，
+                属于 SC 1.4.11 明确豁免的装饰元素。
+                但同样的颜色<strong>不能</strong>拿去做输入框边框 ——
+                那种场景必须用 <code>--line-strong</code>。
+              </p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <p class="spec-foot">
+      盯盘侠 PanWatch H5 · 设计规范 v2.0<br>
+      对比度数据由 <code>scripts/audit-contrast.mjs</code> 与 <code>design/spec.js</code> 按 WCAG 2.1 实测生成。<br>
+      色值由 <code>scripts/solve-tokens.mjs</code> 在 OKLCH 空间反解，非手工指定。
+    </p>
+
+  </main>
+</div>
+
+<script type="module" src="spec.js"></script>
+</body>
+</html>

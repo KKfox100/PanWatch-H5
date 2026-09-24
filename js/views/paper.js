@@ -61,7 +61,7 @@ export function render() {
     ${areaChart(data, { w: 320, h: 150, showAxis: true })}
     <div style="display:flex;gap:16px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft)">
       <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)">
-        <i style="width:14px;height:2px;background:var(--up);border-radius:1px;display:block"></i>策略净值
+        <i style="width:14px;height:2px;background:var(--up-fill);border-radius:var(--r-full);display:block"></i>策略净值
       </span>
       <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)">
         <i style="width:14px;height:0;border-top:2px dashed var(--ink-3);display:block"></i>沪深300 基准

@@ -182,11 +182,13 @@ async function reload(b) {
 
     /* ============ 2. 莫兰迪语义色 ============ */
     console.log('\n[2] 莫兰迪配色与涨跌语义');
+    // 注意：v2 令牌按「角色」拆开了。填充用 -fill，当文字用 -text。
+    // 这里取 -fill 做色相判断（色相与 -text 一致），取 -text 验证文字着色。
     const palette = await b.eval(`(() => {
       const cs = getComputedStyle(document.documentElement);
       const g = (n) => cs.getPropertyValue(n).trim();
       return { bg: g('--bg'), surface: g('--surface'), ink: g('--ink'),
-               up: g('--up'), down: g('--down'), accent: g('--accent'),
+               up: g('--up-fill'), down: g('--down-fill'), accent: g('--accent-fill'),
                rose: g('--morandi-rose'), sage: g('--morandi-sage') };
     })()`);
 
@@ -219,20 +221,76 @@ async function reload(b) {
       return {
         up: upEl ? getComputedStyle(upEl).color : null,
         down: downEl ? getComputedStyle(downEl).color : null,
-        upVar: cs.getPropertyValue('--up').trim(),
-        downVar: cs.getPropertyValue('--down').trim(),
+        upVar: cs.getPropertyValue('--up-text').trim(),
+        downVar: cs.getPropertyValue('--down-text').trim(),
       };
     })()`);
     check('指数卡上真实存在涨/跌着色元素',
       !!applied.up && !!applied.down, JSON.stringify(applied));
-    check('涨色元素用的就是 --up 变量',
+    check('涨色元素用的是 --up-text 角色',
       applied.up && applied.upVar &&
       toRgb(applied.up).join() === toRgb(applied.upVar).join(),
       `${applied.up} vs ${applied.upVar}`);
-    check('跌色元素用的就是 --down 变量',
+    check('跌色元素用的是 --down-text 角色',
       applied.down && applied.downVar &&
       toRgb(applied.down).join() === toRgb(applied.downVar).join(),
       `${applied.down} vs ${applied.downVar}`);
+
+    /* v2 的核心承诺：渲染出来的文字，对比度必须真的达标。
+       只验令牌不够 —— 令牌对了但组件用错角色，用户看到的还是糊的。
+       下面挑几处上一版真实翻车的地方，按实际渲染的颜色算。
+
+       注意：主按钮不在首页。首页只有指标卡和快讯，没有 .btn--primary；
+       持仓页的主按钮也只在「关注」页签下才渲染（持仓页签换成了 ghost 折叠按钮）。
+       所以主按钮单独去个股详情页取 —— 那里的三个主按钮是无条件渲染的。 */
+    const pickExpr = `(sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const cs = getComputedStyle(el);
+      // 往上找第一个不透明的背景色，作为实际承托面
+      let n = el, bg = 'rgba(0, 0, 0, 0)';
+      while (n && (bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent')) {
+        bg = getComputedStyle(n).backgroundColor;
+        n = n.parentElement;
+      }
+      return { color: cs.color, bg, sel };
+    }`;
+
+    const rendered = await b.eval(`(() => {
+      const pick = ${pickExpr};
+      return {
+        tab: pick('.tabbar__item:not([aria-current="page"])'),
+        tabActive: pick('.tabbar__item[aria-current="page"]'),
+        statLabel: pick('.stat__label'),
+      };
+    })()`);
+
+    const renderChecks = [
+      ['底栏未选中标签（上一版 2.71:1 不达标）', rendered.tab],
+      ['底栏选中标签', rendered.tabActive],
+      ['指标卡标签（上一版 2.77:1 不达标）', rendered.statLabel],
+    ];
+    for (const [label, r] of renderChecks) {
+      if (!r) { check(label, false, '元素未找到'); continue; }
+      const cr = contrastRatio(r.color, r.bg);
+      check(`${label} 渲染对比度 ≥ 4.5:1`, cr >= 4.5,
+        `${r.color} on ${r.bg} = ${cr.toFixed(2)}:1`);
+    }
+
+    // 主按钮：切到个股详情页再取
+    await b.eval(`(() => { location.hash = '#/stock/688256'; return true; })()`);
+    await waitFor(b, `!!document.querySelector('.btn--primary')`, '个股页主按钮渲染');
+    const primary = await b.eval(`(() => {
+      const pick = ${pickExpr};
+      return pick('.btn--primary');
+    })()`);
+    if (!primary) {
+      check('主按钮文字（上一版 3.05:1 不达标）', false, '个股页未找到 .btn--primary');
+    } else {
+      const cr = contrastRatio(primary.color, primary.bg);
+      check('主按钮文字（上一版 3.05:1 不达标）渲染对比度 ≥ 4.5:1', cr >= 4.5,
+        `${primary.color} on ${primary.bg} = ${cr.toFixed(2)}:1`);
+    }
 
     /* ============ 3. 路由 ============ */
     console.log('\n[3] 七个页面路由');
@@ -302,7 +360,7 @@ async function reload(b) {
       return p ? p.getAttribute('stroke') : null;
     })()`);
     check('总市值走势图用中性强调色（非涨跌红绿）',
-      sparkColor === 'var(--accent)', String(sparkColor));
+      sparkColor === 'var(--accent-fill)', String(sparkColor));
 
     // 汇总卡数字与账户明细求和不矛盾
     const sum = await b.eval(`(() => {
@@ -522,14 +580,14 @@ async function reload(b) {
     })()`);
     check('切到深色后 data-theme=dark', dark.theme === 'dark', dark.theme);
     check('深色背景为暖棕灰 #232120', dark.bg.toLowerCase() === '#232120', dark.bg);
-    check('深色文字提亮为 #ebe6df', dark.ink.toLowerCase() === '#ebe6df', dark.ink);
+    check('深色文字提亮为 #eae4dd', dark.ink.toLowerCase() === '#eae4dd', dark.ink);
     check('深色模式正文对比度 ≥ 4.5:1',
       contrastRatio(dark.ink, dark.bg) >= 4.5,
       contrastRatio(dark.ink, dark.bg).toFixed(2) + ':1');
 
     const darkSemantic = await b.eval(`(() => {
       const cs = getComputedStyle(document.documentElement);
-      return { up: cs.getPropertyValue('--up').trim(), down: cs.getPropertyValue('--down').trim() };
+      return { up: cs.getPropertyValue('--up-text').trim(), down: cs.getPropertyValue('--down-text').trim() };
     })()`);
     check('深色模式涨跌色同样低饱和且方向正确',
       chroma(darkSemantic.up) <= 90 && chroma(darkSemantic.down) <= 90 &&

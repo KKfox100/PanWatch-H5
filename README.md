@@ -44,6 +44,14 @@
 
 > 截图由 `node scripts/e2e.cjs` 在验证过程中自动产出，不是手工摆拍的。
 
+设计规范页（`design/index.html`）：
+
+| 概览 | 色彩 | 字体 | 组件 |
+|---|---|---|---|
+| ![规范概览](docs/screenshots/design-spec-top.png) | ![色彩](docs/screenshots/design-spec-color.png) | ![字体](docs/screenshots/design-spec-type.png) | ![组件](docs/screenshots/design-spec-components.png) |
+
+> 同样由 `node scripts/e2e-design.cjs` 自动产出。
+
 ---
 
 ## 功能
@@ -75,21 +83,51 @@
 
 色板取自莫兰迪静物画的灰调：**所有颜色都掺入一层暖灰，饱和度压低，明度拉开但不刺眼**。
 
+完整的交互式规范在这里 —— 浏览器直接打开 `design/index.html`（或本地服务下的
+`/design/index.html`）：11 个章节、色板可点击复制令牌名、对比度是**页面加载时现算的**，
+所以它永远和 `css/tokens.css` 一致。
+
+### 每个色相拆成四个角色
+
+v1 的根因不是「颜色不好看」，而是**一个颜色同时干四份活**：既当填充底，又当文字色，
+又当胶囊底，还当胶囊上的字。结果就是文字对比度全面不达标 —— 实测 47 处缺陷。
+
+v2 把每个色相拆成四个独立令牌，各自独立达标：
+
+```css
+--up-fill     填充底（大色块，如涨跌条、K 线）
+--up-text     文字色（正文里的涨跌数字）        ← 对最暗的面 ≥ 4.5:1
+--up-on-soft  胶囊文字（浅底胶囊上的字）        ← 对自家 --up-soft ≥ 4.5:1
+--up-soft     胶囊底（背景，不受文字标准约束）
 ```
-雾霾蓝 #8ca3b4   鼠尾草绿 #9caf9c   陶土 #c2a08f   豆沙粉 #c9a9a6
-灰紫   #a79bb0   沙       #cfc0a8   暖石灰 #b3ada4   苔 #a8ab90
+
+色相沿用莫兰迪灰调：主强调雾霾蓝、次强调鼠尾草绿、涨/危险陶土红、跌/成功灰绿、
+警示琥珀、灰紫；涨跌严格遵循中国市场习惯 —— **涨红跌绿**。
+
+### 色值不是手调的，是解出来的
+
+`scripts/solve-tokens.mjs` 在 OKLCH 空间里反解：固定色相与彩度，二分搜索明度，
+取**刚好达标的最浅解** —— 既合规，又保住莫兰迪的柔感。
+
+用 OKLCH 而不是 HSL，是因为 HSL 的 L 是混色比例而非感知明度：同样的 L 值，
+黄色看着很亮、蓝色看着很暗，靠手调 L 拼出来的灰阶会一段发蓝一段发黄。
+
+两档阈值也是分开的：正文 4.5:1（WCAG 1.4.3 AA），大字与图形文字 3:1。
+混为一谈要么冤枉设计，要么放过缺陷。
+
+### 实测结果
+
+```
+受判定组合  88    达标 88    不达标 0
+装饰豁免     8
 ```
 
-三条设计约束：
+`scripts/audit-contrast.mjs` 会同时做两件事：按 WCAG 2.1 公式验算所有前景/背景组合，
+以及扫描**令牌泄漏** —— 绕过 `tokens.css` 的硬编码颜色。判据是「没名字的颜色改不动」。
 
-1. **文字用暖炭灰 `#3f3b37`，不用纯黑；背景用燕麦米白 `#efece6`，不用纯白。**
-   高对比会立刻毁掉莫兰迪的质感。
-2. **涨跌沿用中国市场习惯——涨红跌绿**，但做了低饱和处理：
-   涨 `#b56a5e`（陶土红）、跌 `#6d9174`（灰绿），久看不累。
-3. **阴影极淡且带暖色**（`rgba(90,78,64,.05)`），莫兰迪要的是「轻」，不是「浮」。
-
-全部色值集中在 `css/tokens.css`，暗色变体只需覆盖同名变量，
-图表里也一律用 `var(--up)` 这类引用——**切主题时图表自动跟随，不用重绘**。
+装饰性元素（分隔线、进度槽）按 WCAG 1.4.11 豁免，判据是
+「该元素消失后信息是否仍完整？」。但输入框和开关的描边承载「可操作」语义，
+所以必须 ≥ 3:1 —— 这条边界最容易搞错。
 
 ---
 
@@ -115,11 +153,15 @@ npm run dev                     # → http://127.0.0.1:8787
 
 ```bash
 node scripts/check.mjs          # 静态自检：import 路径 / 资源引用 / SW 清单 / 图标名 / 事件绑定
-node scripts/e2e.cjs            # 真实 Chrome 端到端（需先起 serve.mjs）
+node scripts/audit-contrast.mjs # 对比度审计 + 令牌泄漏扫描（纯 Node，不需要浏览器）
+node scripts/e2e.cjs            # 应用端到端（需先起 serve.mjs）
+node scripts/e2e-design.cjs     # 设计规范页端到端（同样需先起 serve.mjs）
+
+npm run verify                  # 上面四项一次跑完
 ```
 
 `e2e.cjs` 用系统已装的 Chrome 通过 CDP 驱动，**不装 Playwright**，
-覆盖 12 组共 60+ 项断言：首屏、莫兰迪令牌、涨红跌绿、七个路由、
+覆盖 12 组共 97 项断言：首屏、莫兰迪令牌、涨红跌绿、七个路由、
 数据自洽、图表绘制、弹层动态增删、主题切换与对比度、持久化、
 控制台零报错、桌面端居中布局，并输出移动端与桌面端截图。
 
@@ -184,6 +226,11 @@ docker run -d --name panwatch -p 8000:8000 \
 ├── _headers                Cloudflare 响应头规则（不对外提供，只被解析）
 ├── .assetsignore           部署排除清单（不是 wrangler 的 exclude 字段）
 ├── wrangler.jsonc          Workers 配置
+├── design/                 交互式设计规范（独立页面，不属于应用本体）
+│   ├── index.html          11 个章节：概览 / 用户与 IA / 色彩 / 字体 / 间距 /
+│   │                       阴影 / 图标 / 动效 / 组件 / 页面 / 可访问性
+│   ├── spec.css            规范页自己的排版层（不重复定义任何令牌）
+│   └── spec.js             规范页逻辑：现算对比度、主题切换、目录、复制令牌
 ├── css/
 │   ├── tokens.css          莫兰迪设计令牌（浅色 + 暗色 + 跟随系统）
 │   ├── base.css            重置、外壳布局、顶栏底栏
@@ -193,7 +240,7 @@ docker run -d --name panwatch -p 8000:8000 \
 │   ├── store.js            状态与 localStorage 持久化
 │   ├── data.js             演示数据 + 派生计算（所有数字在这里自洽）
 │   ├── utils.js            格式化 / DOM / 伪随机序列
-│   ├── icons.js            线性图标集（约 70 个）
+│   ├── icons.js            线性图标集（50 个）
 │   ├── charts.js           手写 SVG 图表
 │   ├── ui.js               共享渲染片段
 │   └── views/              七个页面视图
@@ -201,7 +248,10 @@ docker run -d --name panwatch -p 8000:8000 \
 └── scripts/
     ├── serve.mjs           本地零依赖静态服务
     ├── check.mjs           静态自检
-    ├── e2e.cjs             真实浏览器端到端
+    ├── solve-tokens.mjs    OKLCH 反解令牌色值（改配色时用）
+    ├── audit-contrast.mjs  WCAG 对比度审计 + 令牌泄漏扫描
+    ├── e2e.cjs             应用端到端
+    ├── e2e-design.cjs      设计规范页端到端
     ├── cdp-client.cjs      CDP 客户端
     └── gen-icons.py        生成 PWA 图标
 ```

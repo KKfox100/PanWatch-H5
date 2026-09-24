@@ -14,8 +14,8 @@ html {
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
   color: var(--ink);
   background: var(--bg);
   overscroll-behavior-y: none;
@@ -40,7 +40,7 @@ button {
 
 input, select, textarea { font: inherit; color: inherit; }
 
-a { color: var(--accent-ink); text-decoration: none; }
+a { color: var(--accent-text); text-decoration: none; }
 
 ul, ol { margin: 0; padding: 0; list-style: none; }
 
@@ -49,7 +49,7 @@ h1, h2, h3, h4, p { margin: 0; }
 /* ---- 滚动条：细、灰、不抢戏 ---- */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
+  background: var(--line-emphasis);
   border-radius: var(--r-full);
 }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -70,7 +70,7 @@ h1, h2, h3, h4, p { margin: 0; }
   top: 0;
   z-index: 40;
   padding-top: var(--safe-t);
-  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
   backdrop-filter: saturate(1.4) blur(14px);
   -webkit-backdrop-filter: saturate(1.4) blur(14px);
   border-bottom: 1px solid var(--line-soft);
@@ -89,24 +89,24 @@ h1, h2, h3, h4, p { margin: 0; }
 .brand__mark {
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, var(--accent), var(--accent-2));
-  color: #fff;
+  background: linear-gradient(140deg, var(--accent-fill), var(--sage-fill));
+  color: var(--ink-inverse);
   flex: none;
   box-shadow: var(--shadow-1);
 }
 .brand__mark svg { width: 15px; height: 15px; }
 
 .brand__name {
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: 0.2px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide);
   white-space: nowrap;
 }
 .brand__ver {
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--ink-3);
   font-family: var(--font-num);
   padding: 1px 5px;
@@ -126,10 +126,10 @@ h1, h2, h3, h4, p { margin: 0; }
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
   flex: none;
 }
-.icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+.icon-btn:hover { background: var(--surface-sunken); color: var(--ink); }
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn svg { width: 18px; height: 18px; }
-.icon-btn--accent { color: var(--accent-ink); }
+.icon-btn--accent { color: var(--accent-text); }
 
 /* 内容区 */
 .page {
@@ -154,7 +154,7 @@ h1, h2, h3, h4, p { margin: 0; }
   align-items: stretch;
   height: calc(var(--tabbar-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
-  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   backdrop-filter: saturate(1.4) blur(14px);
   -webkit-backdrop-filter: saturate(1.4) blur(14px);
   box-shadow: var(--shadow-nav);
@@ -168,14 +168,14 @@ h1, h2, h3, h4, p { margin: 0; }
   justify-content: center;
   gap: 3px;
   color: var(--ink-3);
-  font-size: 10.5px;
-  letter-spacing: 0.2px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-wide);
   transition: color var(--dur) var(--ease);
   position: relative;
 }
 .tabbar__item svg { width: 21px; height: 21px; transition: transform var(--dur) var(--ease); }
 .tabbar__item:active svg { transform: scale(0.88); }
-.tabbar__item[aria-current="page"] { color: var(--accent-ink); font-weight: 600; }
+.tabbar__item[aria-current="page"] { color: var(--accent-text); font-weight: var(--fw-bold); }
 .tabbar__item[aria-current="page"]::after {
   content: "";
   position: absolute;
@@ -183,12 +183,12 @@ h1, h2, h3, h4, p { margin: 0; }
   width: 16px;
   height: 3px;
   border-radius: var(--r-full);
-  background: var(--accent);
+  background: var(--accent-fill);
 }
 
 /* 桌面/大屏：收成手机宽度居中，更像 H5 预览 */
 @media (min-width: 720px) {
-  body { background: var(--surface-2); }
+  body { background: var(--surface-sunken); }
   #app {
     max-width: 460px;
     margin: 0 auto;
@@ -209,8 +209,8 @@ h1, h2, h3, h4, p { margin: 0; }
   gap: 10px;
   margin-bottom: 12px;
 }
-.page-head__title { font-size: 21px; font-weight: 700; letter-spacing: -0.2px; }
-.page-head__sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.page-head__title { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: var(--ls-tight); }
+.page-head__sub { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 2px; }
 .page-head__spacer { flex: 1; }
 
 .section-title {
@@ -218,13 +218,13 @@ h1, h2, h3, h4, p { margin: 0; }
   align-items: center;
   gap: 7px;
   margin: 18px 0 9px;
-  font-size: 13.5px;
-  font-weight: 650;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   color: var(--ink);
 }
 .section-title svg { width: 15px; height: 15px; color: var(--ink-3); }
 .section-title__spacer { flex: 1; }
-.section-title__more { font-size: 12px; color: var(--ink-3); font-weight: 400; }
+.section-title__more { font-size: var(--fs-xs); color: var(--ink-3); font-weight: var(--fw-regular); }
 
 /* ==========================================================================
    通用卡片
@@ -246,23 +246,23 @@ h1, h2, h3, h4, p { margin: 0; }
 .notice {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: var(--sp-2);
   padding: 10px 12px;
   border-radius: var(--r-sm);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-normal);
   color: var(--ink-2);
   background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-fill) 22%, transparent);
   margin-bottom: 12px;
 }
-.notice svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent-ink); }
-.notice b { color: var(--accent-ink); font-weight: 650; }
+.notice svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent-text); }
+.notice b { color: var(--accent-text); font-weight: var(--fw-bold); }
 
 .empty {
   padding: 44px 20px;
   text-align: center;
   color: var(--ink-3);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 .empty svg { width: 34px; height: 34px; margin-bottom: 10px; opacity: 0.55; }

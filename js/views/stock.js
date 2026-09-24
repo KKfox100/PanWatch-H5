@@ -150,11 +150,11 @@ function renderOverview(s, bars, range) {
     <div style="display:flex;gap:14px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);
       font-size:10.5px;color:var(--ink-3)">
       <span style="display:flex;align-items:center;gap:5px">
-        <i style="width:12px;height:2px;background:var(--accent);display:block;border-radius:1px"></i>MA5</span>
+        <i style="width:12px;height:2px;background:var(--accent-fill);display:block;border-radius:var(--r-full)"></i>MA5</span>
       <span style="display:flex;align-items:center;gap:5px">
-        <i style="width:12px;height:2px;background:var(--warn);display:block;border-radius:1px"></i>MA10</span>
+        <i style="width:12px;height:2px;background:var(--warn-fill);display:block;border-radius:var(--r-full)"></i>MA10</span>
       <span style="display:flex;align-items:center;gap:5px">
-        <i style="width:12px;height:2px;background:var(--morandi-lilac);display:block;border-radius:1px"></i>MA20</span>
+        <i style="width:12px;height:2px;background:var(--morandi-lilac);display:block;border-radius:var(--r-full)"></i>MA20</span>
       <span style="flex:1"></span>
       <span>红涨绿跌</span>
     </div>
@@ -227,7 +227,7 @@ function renderTech(s, tech) {
       return `<div class="meter" style="margin-bottom:11px">
         <span class="meter__label">${r.label}</span>
         <span style="flex:1;position:relative;height:6px">
-          <span style="position:absolute;inset:0;background:var(--surface-3);border-radius:999px"></span>
+          <span style="position:absolute;inset:0;background:var(--surface-well);border-radius:var(--r-full)"></span>
           <span style="position:absolute;left:${left.toFixed(1)}%;top:-2px;width:3px;height:10px;
             border-radius:2px;background:var(--${r.tone === 'accent' ? 'accent' : r.tone})"></span>
         </span>

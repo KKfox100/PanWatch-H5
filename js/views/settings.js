@@ -25,8 +25,8 @@ const THEMES = [
 
 /** 莫兰迪色板预览 */
 const PALETTE = [
-  { name: '雾霾蓝', v: 'var(--accent)' },
-  { name: '鼠尾草', v: 'var(--accent-2)' },
+  { name: '雾霾蓝', v: 'var(--accent-fill)' },
+  { name: '鼠尾草', v: 'var(--sage-fill)' },
   { name: '陶土', v: 'var(--morandi-clay)' },
   { name: '豆沙粉', v: 'var(--morandi-rose)' },
   { name: '灰紫', v: 'var(--morandi-lilac)' },
@@ -44,7 +44,7 @@ export function render() {
   <!-- 账户 -->
   <div class="card card--pad" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
     <span style="width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
-      background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;flex:none">
+      background:linear-gradient(140deg,var(--accent-fill),var(--sage-fill));color:var(--ink-inverse);flex:none">
       <span style="width:22px;height:22px">${icon('user')}</span>
     </span>
     <span style="flex:1;min-width:0">

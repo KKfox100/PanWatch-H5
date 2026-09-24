@@ -47,7 +47,7 @@ export function sparkline(values, opts = {}) {
   if (!values || values.length < 2) return '';
   const pts = toPoints(values, w, h, 1.5);
   const d = smoothPath(pts);
-  const color = forceColor || (up ? 'var(--up)' : 'var(--down)');
+  const color = forceColor || (up ? 'var(--up-fill)' : 'var(--down-fill)');
   const gid = `sg${Math.random().toString(36).slice(2, 8)}`;
   const last = pts[pts.length - 1];
 
@@ -102,7 +102,7 @@ export function areaChart(data, opts = {}) {
   const bmPts = bmVals.length ? data.map((d, i) => [x(i), y(d.benchmark)]) : [];
 
   const up = navVals[navVals.length - 1] >= navVals[0];
-  const color = up ? 'var(--up)' : 'var(--down)';
+  const color = up ? 'var(--up-fill)' : 'var(--down-fill)';
   const gid = `ag${Math.random().toString(36).slice(2, 8)}`;
 
   // 网格 + Y 轴刻度
@@ -178,7 +178,7 @@ export function klineChart(bars, opts = {}) {
     }
     return pts.length > 1 ? linePath(pts) : '';
   };
-  const maColors = ['var(--accent)', 'var(--warn)', 'var(--morandi-lilac)'];
+  const maColors = ['var(--accent-fill)', 'var(--warn-fill)', 'var(--morandi-lilac)'];
 
   // 成交量
   const vols = bars.map((b) => Math.abs(b.c - b.o) / (b.c || 1));
@@ -189,14 +189,14 @@ export function klineChart(bars, opts = {}) {
     const up = b.c >= b.o;
     volBars += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(h - padB - vh).toFixed(1)}"
       width="${bw.toFixed(1)}" height="${vh.toFixed(1)}" rx="0.6"
-      fill="${up ? 'var(--up)' : 'var(--down)'}" opacity="0.34"/>`;
+      fill="${up ? 'var(--up-fill)' : 'var(--down-fill)'}" opacity="0.34"/>`;
   });
 
   // 蜡烛
   let candles = '';
   bars.forEach((b, i) => {
     const up = b.c >= b.o;
-    const color = up ? 'var(--up)' : 'var(--down)';
+    const color = up ? 'var(--up-fill)' : 'var(--down-fill)';
     const yo = y(b.o), yc = y(b.c);
     const top = Math.min(yo, yc);
     const bh = Math.max(1, Math.abs(yc - yo));
@@ -204,7 +204,7 @@ export function klineChart(bars, opts = {}) {
       y2="${y(b.l).toFixed(1)}" stroke="${color}" stroke-width="1" opacity="0.85"/>`;
     candles += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}"
       width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="0.6"
-      fill="${up ? 'var(--up)' : 'var(--down)'}"/>`;
+      fill="${up ? 'var(--up-fill)' : 'var(--down-fill)'}"/>`;
   });
 
   // Y 轴刻度
@@ -237,7 +237,7 @@ export function klineChart(bars, opts = {}) {
    -------------------------------------------------------------------------- */
 
 const DONUT_COLORS = [
-  'var(--accent)', 'var(--accent-2)', 'var(--morandi-clay)',
+  'var(--accent-fill)', 'var(--sage-fill)', 'var(--morandi-clay)',
   'var(--morandi-lilac)', 'var(--morandi-sand)', 'var(--morandi-teal)',
 ];
 
@@ -265,7 +265,7 @@ export function donut(items, opts = {}) {
   }).join('');
 
   return `<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px;flex:none" aria-hidden="true">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="${thickness}"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface-well)" stroke-width="${thickness}"/>
     ${arcs}
   </svg>`;
 }
@@ -281,7 +281,7 @@ export function hbars(items, opts = {}) {
   const top = max ?? Math.max(...items.map((i) => Math.abs(i.value))) ?? 1;
   return items.map((it, i) => {
     const w = (Math.abs(it.value) / top) * 100;
-    const color = it.value >= 0 ? 'var(--up)' : 'var(--down)';
+    const color = it.value >= 0 ? 'var(--up-fill)' : 'var(--down-fill)';
     return `<div class="meter" style="margin-bottom:9px">
       <span class="meter__label" style="width:74px">${it.label}</span>
       <span class="bar"><span class="bar__fill" style="width:${w.toFixed(1)}%;background:${color}"></span></span>

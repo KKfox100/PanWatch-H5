@@ -33,25 +33,36 @@ export function actionChip(action) {
   return `<span class="chip ${cls}">${esc(action)}</span>`;
 }
 
-/** 指标卡 */
+/** 指标卡
+ *
+ *  delta     —— 数值，只用来判方向（决定涨跌色）。
+ *  deltaPct  —— 字符串，是真正显示在卡片上的那行字。
+ *               两者是分开的：首页把「今日 +2,341」放进去，持仓页放「+1.27%」。
+ *
+ *  ⚠️ 必须同时给。只给 delta 不给 deltaPct 的话，模板里插值的
+ *     undefined 会被原样渲染成「undefined」四个字母显示在卡片上 ——
+ *     这是模板字符串最典型的翻车方式，所以这里显式挡一道。
+ */
 export function statCard({ label, iconName, value, unit, delta, deltaPct, foot, footSplit, tone = '', spark, sparkTone }) {
   const toneCls = tone ? ` stat--${tone}` : '';
-  const d = delta !== undefined && delta !== null ? dir(delta) : null;
+  const hasDelta = delta !== undefined && delta !== null;
+  const hasDeltaText = deltaPct !== undefined && deltaPct !== null && deltaPct !== '';
+  const d = hasDelta ? dir(delta) : null;
 
   // 迷你走势图的颜色：显式 sparkTone 优先，其次跟 delta 走，
   // 都没有时用强调色 —— 绝不拿「序列最后一位是否高于第一位」来猜涨跌，
   // 那会让一条装饰性曲线和卡片上的盈利数字对着干。
-  const sparkColor = sparkTone === 'accent' ? 'var(--accent)'
-    : sparkTone === 'sage' ? 'var(--accent-2)'
-    : sparkTone === 'up' ? 'var(--up)'
-    : sparkTone === 'down' ? 'var(--down)'
+  const sparkColor = sparkTone === 'accent' ? 'var(--accent-fill)'
+    : sparkTone === 'sage' ? 'var(--sage-fill)'
+    : sparkTone === 'up' ? 'var(--up-fill)'
+    : sparkTone === 'down' ? 'var(--down-fill)'
     : null;
-  const sparkUp = delta !== undefined && delta !== null ? delta >= 0 : true;
+  const sparkUp = hasDelta ? delta >= 0 : true;
 
   return `<div class="stat${toneCls}">
     <div class="stat__label">${iconName ? icon(iconName) : ''}<span>${esc(label)}</span></div>
     <div class="stat__value ${d ? dirClass(delta) : ''}">${value}${unit ? `<span class="unit">${unit}</span>` : ''}</div>
-    ${delta !== undefined && delta !== null
+    ${hasDelta && hasDeltaText
       ? `<div class="stat__delta stat__delta--${d}">${deltaPct}</div>` : ''}
     ${foot ? `<div class="stat__foot${footSplit ? ' stat__foot--split' : ''}">${foot}</div>` : ''}
     ${spark ? `<div class="stat__spark">${sparkline(spark, { w: 140, h: 26, up: sparkUp, color: sparkColor })}</div>` : ''}

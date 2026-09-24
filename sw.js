@@ -7,8 +7,13 @@
    改版本号即可让所有客户端拿到新资源。
    ========================================================================== */
 
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const CACHE = `panwatch-h5-${VERSION}`;
+
+/* 应用外壳的路径。注意应用是哈希路由，所以外壳永远是 '/' 或 '/index.html'，
+   不会出现 /portfolio 这种路径。 */
+const SHELL = new URL('./index.html', self.location).pathname;
+const ROOT = new URL('./', self.location).pathname;
 
 const PRECACHE = [
   './',
@@ -63,14 +68,23 @@ self.addEventListener('fetch', (e) => {
 
   // 导航：网络优先
   if (request.mode === 'navigate') {
+    // ⚠️ 只把「应用外壳」回写到固定键 SHELL，其余页面按自己的 URL 存。
+    //
+    // 原来的写法是不管什么导航，一律 c.put('./index.html', copy)。
+    // 站点只有 index.html 时这没毛病；一旦多出 /design/index.html，
+    // 用户只要打开一次设计规范页，离线外壳就被换成规范页 ——
+    // 之后断网打开 / 看到的是设计规范，而不是应用。缓存被静默投毒了。
+    const isShell = url.pathname === ROOT || url.pathname === SHELL;
+    const cacheKey = isShell ? SHELL : request;
+
     e.respondWith(
       fetch(request)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('./index.html', copy)).catch(() => {});
+          caches.open(CACHE).then((c) => c.put(cacheKey, copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match('./index.html').then((r) => r || Response.error()))
+        .catch(() => caches.match(cacheKey).then((r) => r || Response.error()))
     );
     return;
   }

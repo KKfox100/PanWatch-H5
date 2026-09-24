@@ -135,8 +135,16 @@ docs/
 LICENSE
 ```
 
-排除后真正上边缘的只有 24 个运行时文件：`index.html`、`sw.js`、
-`css/*`（3 个）、`js/*`（7 个）、`js/views/*`（7 个）、`public/*`（5 个）。
+排除后真正上边缘的运行时文件分两组：
+
+- **应用本体 24 个**：`index.html`、`sw.js`、`css/*`（3 个）、
+  `js/*`（7 个）、`js/views/*`（7 个）、`public/*`（5 个）。
+- **设计规范页 3 个**：`design/index.html`、`design/spec.css`、`design/spec.js`。
+
+`design/` 是**故意不排除**的 —— 它是交付物的一部分，上线后
+`https://<你的域名>/design/index.html` 可以直接分享给别人看设计规范。
+它能独立工作，是因为它复用了应用自己的 `css/*` 和 `js/*`（都在上面那 24 个里），
+页面里没有自己的副本。不想公开的话，在 `.assetsignore` 里加一行 `design/` 即可。
 
 **验证排除是否真的生效**（这一步很关键，因为默认输出会误导你）：
 
