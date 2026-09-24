@@ -4,28 +4,16 @@
   "compatibility_date": "2026-09-01",
 
   // 纯静态站点：没有服务端逻辑，Workers 只负责把资源从边缘节点发出去。
-  // 目录用 "." —— 项目根就是站点根，index.html 直接对外。
+  // directory 用 "." —— 项目根即站点根，index.html 直接对外。
+  //
+  // ⚠️ assets 配置里**没有** exclude 字段。想排除文件要用根目录的
+  //    .assetsignore（.gitignore 语法），否则 wrangler 会把整个仓库
+  //    ——包括 .git —— 一起上传。wrangler 对多余字段只警告不报错，
+  //    很容易部署完才发现源码和版本历史都挂到了公网。
   "assets": {
     "directory": ".",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application",
-
-    // 只发布真正要上线的资源，源码文档 / 脚本 / 配置不传到边缘
-    "exclude": [
-      "node_modules/**",
-      ".git/**",
-      ".github/**",
-      "scripts/**",
-      "docs/**",
-      "wrangler.jsonc",
-      "wrangler.toml",
-      "package.json",
-      "package-lock.json",
-      "pnpm-lock.yaml",
-      ".gitignore",
-      ".editorconfig",
-      "**/*.md"
-    ]
+    "not_found_handling": "single-page-application"
   },
 
   "observability": { "enabled": true },

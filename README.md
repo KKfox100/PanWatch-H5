@@ -141,7 +141,9 @@ npm run deploy           # → https://panwatch-h5.<你的子域>.workers.dev
 几个已经处理好的细节：
 
 - `assets.directory: "."` —— 项目根即站点根，`index.html` 直接对外
-- `assets.exclude` —— 只发布运行时要用的资源，源码脚本 / 文档 / 配置不上边缘
+- **`.assetsignore`** —— 只发布 24 个运行时文件，`.git` / `scripts` / `docs` /
+  配置文件都不上边缘（注意 `assets` 配置里**没有** `exclude` 字段，
+  写在那里会被静默忽略并把整个仓库传上去）
 - `not_found_handling: "single-page-application"` —— 深链回落，直接开 `#/portfolio` 也能用
 - `_headers` —— HTML 短缓存（发版即生效）、静态资源长缓存、SW 绝不缓存
 - 自定义域名：Cloudflare 控制台 → Workers → 你的 Worker → Settings → Domains & Routes
@@ -179,7 +181,8 @@ docker run -d --name panwatch -p 8000:8000 \
 .
 ├── index.html              入口（含主题防闪内联脚本 + 首屏骨架）
 ├── sw.js                   Service Worker（必须在根目录才能拿到全站作用域）
-├── _headers                Cloudflare 响应头规则
+├── _headers                Cloudflare 响应头规则（不对外提供，只被解析）
+├── .assetsignore           部署排除清单（不是 wrangler 的 exclude 字段）
 ├── wrangler.jsonc          Workers 配置
 ├── css/
 │   ├── tokens.css          莫兰迪设计令牌（浅色 + 暗色 + 跟随系统）

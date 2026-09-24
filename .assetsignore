@@ -1,0 +1,45 @@
+# ==========================================================================
+# 部署忽略清单（.gitignore 语法）
+# --------------------------------------------------------------------------
+# wrangler 上传静态资源时读这个文件。注意两点：
+#
+# ① wrangler 的 assets 配置里**没有** exclude 字段。写在那里只会得到一句
+#    警告然后被静默忽略，把整个仓库（含 .git 版本历史）一起传到边缘。
+#
+# ② 部署日志里的「✨ Read N files」是**过滤前**的计数，看着像没生效。
+#    真正被排除的文件记在 debug 日志里：WRANGLER_LOG=debug npx wrangler deploy
+#    然后搜 "Ignoring asset:"。
+# ==========================================================================
+
+# 版本控制与仓库元数据（不排除 .git 会连提交历史一起公开）
+.git/
+.gitattributes
+.gitignore
+.github/
+
+# 依赖与构建产物
+node_modules/
+.wrangler/
+.wrangler-dry/
+
+# 工具链与配置：线上不需要，且会把源码和配置挂到公网
+scripts/
+wrangler.jsonc
+wrangler.toml
+package.json
+package-lock.json
+pnpm-lock.yaml
+
+# 文档：README 里的截图在 GitHub 上照样显示，不必占用边缘存储
+docs/
+*.md
+LICENSE
+
+# 杂项
+.DS_Store
+Thumbs.db
+*.log
+
+# 关于 _headers：不必写在这里。
+# wrangler 内置就把它排除在静态资源之外（连同 _redirects），
+# 因为它的用途是被 Cloudflare 解析成响应头规则，而不是被访问。

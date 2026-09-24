@@ -9,10 +9,11 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "preview": "python -m http.server 5183",
-    "preview:node": "node scripts/serve.mjs",
+    "verify:deploy": "wrangler deploy --dry-run",
+    "preview": "node scripts/serve.mjs 5183",
     "icons": "python scripts/gen-icons.py",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "e2e": "node scripts/e2e.cjs"
   },
   "devDependencies": {
     "wrangler": "^4.137.0"

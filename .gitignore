@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 .wrangler/
+.wrangler-dry/
 .dev.vars
 .env
 .env.local

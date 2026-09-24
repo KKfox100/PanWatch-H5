@@ -24,9 +24,12 @@
 ### 部署
 
 - `wrangler.jsonc` 配置 Cloudflare Workers 静态资源托管，`npx wrangler deploy` 一条命令上线
+- **`.assetsignore`** 排除非运行时文件，最终只上传 24 个资源。
+  ⚠️ `assets` 配置里没有 `exclude` 字段，写在那里只会得到一句警告然后被静默忽略，
+  把整个仓库（含 `.git` 提交历史）一起传到边缘
 - `_headers` 处理缓存策略：HTML 短缓存（发版即生效）、静态资源长缓存、SW 绝不缓存
-- `assets.exclude` 只发布运行时资源，源码与配置不上边缘
 - `not_found_handling: single-page-application` 支持深链
+- 已用 `wrangler deploy --dry-run` 验证：零配置警告，上传清单符合预期
 
 ### 工具链
 

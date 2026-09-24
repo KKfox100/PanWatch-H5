@@ -99,24 +99,60 @@ npm run dev      # → http://127.0.0.1:8787
   "assets": {
     "directory": ".",                                  // 项目根即站点根
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application",   // 深链回落
-    "exclude": [ "scripts/**", "**/*.md", "wrangler.jsonc", ... ]
+    "not_found_handling": "single-page-application"    // 深链回落
   },
   "observability": { "enabled": true }
 }
 ```
 
 - **`directory: "."`** —— `index.html` 在根目录，站点根直接对外，路径最干净
-- **`exclude`** —— 只发布运行时真正需要的文件。
-  不加这个，`scripts/`、`README.md`、`wrangler.jsonc` 都会被传到边缘上，
-  等于把你的源码和配置公开挂在公网
 - **`not_found_handling: "single-page-application"`** ——
   哈希路由其实不需要它（`#/portfolio` 的 `#` 后面不会发给服务器），
   但加上它可以兜住将来改成 history 路由的情况，以及用户手抖输错路径
 
+> ⚠️ **`assets` 里没有 `exclude` 字段。** 写成
+> ```jsonc
+> "assets": { "directory": ".", "exclude": ["scripts/**"] }   // ✗ 无效
+> ```
+> wrangler 只会打印一句 `Unexpected fields found in assets field: "exclude"`，
+> 然后**照样把整个仓库传上去 —— 包括 `.git` 里的提交历史**。
+> 排除文件要用根目录的 `.assetsignore`（见下）。
+
+### `.assetsignore`
+
+放在静态资源目录的根（本项目即项目根），语法与 `.gitignore` 相同。
+wrangler 会跳过匹配的文件。
+
+```
+.git/                 # 不写这行，提交历史会被公开
+node_modules/
+.wrangler/
+scripts/              # 工具链不上线
+wrangler.jsonc
+package.json
+docs/
+*.md
+LICENSE
+```
+
+排除后真正上边缘的只有 24 个运行时文件：`index.html`、`sw.js`、
+`css/*`（3 个）、`js/*`（7 个）、`js/views/*`（7 个）、`public/*`（5 个）。
+
+**验证排除是否真的生效**（这一步很关键，因为默认输出会误导你）：
+
+```bash
+WRANGLER_LOG=debug npx wrangler deploy --dry-run 2>&1 | grep "Ignoring asset:"
+```
+
+⚠️ 部署日志里的 `✨ Read 233 files from the assets directory` 是**过滤前**的
+计数 —— 看起来像是 `.assetsignore` 完全没生效，其实它只是日志位置的问题。
+真正被排除的文件记在 debug 级别。别被那个数字骗了。
+
 ### `_headers`
 
-Cloudflare 的静态资源托管会读根目录的 `_headers` 文件（语法与 Pages 一致）：
+Cloudflare 的静态资源托管会读根目录的 `_headers` 文件（语法与 Pages 一致）。
+注意它**不会**作为静态资源对外提供 —— wrangler 内置就把它排除了
+（连同 `_redirects`），因为它的用途是被解析成响应头规则。
 
 | 路径 | 策略 | 原因 |
 |---|---|---|
@@ -124,11 +160,16 @@ Cloudflare 的静态资源托管会读根目录的 `_headers` 文件（语法与
 | `/css/*`、`/js/*`、`/public/*` | `max-age=604800` | 静态资源内容稳定，长缓存省流量 |
 | `/sw.js` | `max-age=0, must-revalidate` | **Service Worker 绝不能被缓存**，否则永远更新不了 |
 
+Cloudflare 对静态资源的默认缓存策略已经是 `public, max-age=0, must-revalidate`
+（每次都带 `ETag` 回源校验），所以 `_headers` 的作用主要是**放宽**静态资源的
+缓存、以及补上安全响应头。
+
 另外统一加了 `X-Content-Type-Options: nosniff`、`X-Frame-Options: SAMEORIGIN`、
 `Referrer-Policy`、`Permissions-Policy` 和 HSTS。
 
 > 如果你的 JS 文件名带内容哈希（本项目没有构建步骤，所以不带），
 > 可以把 `max-age` 提到一年并加 `immutable`。
+> 限制：最多 100 条规则，每条规则单行上限 2000 字符。
 
 ### Service Worker 的位置
 

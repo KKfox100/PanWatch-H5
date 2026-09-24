@@ -668,9 +668,11 @@ async function reload(b) {
     check('遍历 6 个页面无控制台报错', errs.length === 0, errs.slice(0, 4).join(' | '));
 
     const assets = await b.eval(`(async () => {
+      // 注意：_headers 不在列表里 —— Cloudflare 会把它解析成响应头规则，
+      // 本身不作为静态资源对外提供（wrangler 内置就把它排除了）。
       const urls = ['./css/tokens.css','./css/base.css','./css/components.css',
                     './js/app.js','./js/views/stock.js','./public/manifest.json',
-                    './public/icon-192.png','./public/icon-512.png','./sw.js','./_headers'];
+                    './public/icon-192.png','./public/icon-512.png','./sw.js'];
       const out = {};
       for (const u of urls) {
         try { const r = await fetch(u); out[u] = r.status; } catch (e) { out[u] = 'ERR'; }
