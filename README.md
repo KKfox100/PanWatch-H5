@@ -5,6 +5,10 @@
 基于 [jackhuo2/PanWatch](https://github.com/jackhuo2/PanWatch)（自托管 AI 盯盘助手）改造的**独立移动端 H5 应用**。
 原项目是 `FastAPI 后端 + React 前端` 的重型自托管方案；本版把界面重做成一套**零依赖、零构建、可直接上边缘节点**的移动优先 H5。
 
+**在线体验**：<https://panwatch-h5.2412.workers.dev> —— 这份已接上后端，
+顶栏会标出「实时」，价格随行情变化。也可以直接打开
+[设计规范页](https://panwatch-h5.2412.workers.dev/design/index.html)看设计系统。
+
 **两种用法，同一份前端代码：**
 
 | 模式 | 怎么跑 | 数据 |

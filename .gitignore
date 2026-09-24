@@ -12,6 +12,12 @@ build/
 .env.local
 .env.*.local
 
+# 凭据：写入令牌等，绝不进版本库
+*write-token*.txt
+.write-token*
+*.secret
+secrets.json
+
 # 编辑器与系统
 .DS_Store
 Thumbs.db

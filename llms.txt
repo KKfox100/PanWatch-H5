@@ -174,13 +174,13 @@ Workers；要用实时行情，再建一个 D1 数据库并跑一次建表脚本
 
 ## 链接
 
-- [应用首页](https://panwatch-h5.workers.dev/)：交互式应用，需要启用 JavaScript
-- [设计规范](https://panwatch-h5.workers.dev/design/index.html)：完整的设计系统文档，对比度数据由脚本实测生成
+- [应用首页](https://panwatch-h5.2412.workers.dev/)：交互式应用，需要启用 JavaScript
+- [设计规范](https://panwatch-h5.2412.workers.dev/design/index.html)：完整的设计系统文档，对比度数据由脚本实测生成
 - [源码仓库](https://github.com/KKfox100/PanWatch-H5)：H5 版本源码
 - [原始项目](https://github.com/jackhuo2/PanWatch)：上游 PanWatch 项目
 
 ## 可选
 
-- [完整内容](https://panwatch-h5.workers.dev/llms-full.txt)：把上述信息与全部技术细节合并成一个文件
-- [站点地图](https://panwatch-h5.workers.dev/sitemap.xml)
-- [抓取政策](https://panwatch-h5.workers.dev/robots.txt)：欢迎语言模型抓取，已显式许可
+- [完整内容](https://panwatch-h5.2412.workers.dev/llms-full.txt)：把上述信息与全部技术细节合并成一个文件
+- [站点地图](https://panwatch-h5.2412.workers.dev/sitemap.xml)
+- [抓取政策](https://panwatch-h5.2412.workers.dev/robots.txt)：欢迎语言模型抓取，已显式许可

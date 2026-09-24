@@ -70,6 +70,12 @@
   浏览器为失败请求打的日志 text 里**不含 URL**，只能按数量放行，
   那等于把真正的资源 404 一起放过去了。给 CDP 客户端加 `consoleErrorEntries()`
   返回 `{text, url}`，精确放行 `/api/health`，并**同时断言降级路径真的生效**
+- **`vars.WRITE_TOKEN` 会让每次部署都删掉同名 secret**（部署到 Cloudflare
+  时实测发现）。`wrangler deploy` 按配置重新计算绑定，config 里声明为普通变量的
+  名字会覆盖并删除 secret —— 于是「设 secret → 部署 → 写接口又全公开」无限循环，
+  而部署日志里只有一行 `env.WRITE_TOKEN ("")`，看不出异常。
+  已从 `wrangler.jsonc` 彻底移除该键，本地开发改用
+  `--var WRITE_TOKEN:devtoken` 命令行参数
 
 ### 工程约束（新增，已写进代码注释与测试）
 

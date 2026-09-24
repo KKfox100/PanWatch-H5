@@ -95,11 +95,47 @@ npx wrangler secret put WRITE_TOKEN
 
 提示时输入一个随机串（例如 `openssl rand -hex 32` 的输出）。
 
-⚠️ **不设这个 secret 等于写接口全公开。** `wrangler.jsonc` 里的
-`vars.WRITE_TOKEN` 默认是空字符串，而空 = 不校验（为了本地开发方便）。
-线上必须用 secret 覆盖它 —— secret 优先级高于 `vars`。
-设好之后 `PUT /api/portfolio` 这类接口要求
-`Authorization: Bearer <token>`，没有就是 401。
+⚠️ **不设这个 secret 等于写接口全公开。** 空值 = 不校验，
+所以 `PUT /api/portfolio` 这类接口谁都能改。
+设好之后它们要求 `Authorization: Bearer <token>`，没有就是 401。
+
+#### ⚠️ `vars` 里绝对不能出现同名键
+
+**`wrangler.jsonc` 的 `vars` 里不要写 `WRITE_TOKEN` —— 哪怕写空字符串也不行。**
+这是实际踩过的坑，而且非常隐蔽：
+
+```jsonc
+"vars": { "WRITE_TOKEN": "" }     // ✗ 每次 deploy 都会把 secret 删掉
+```
+
+`wrangler deploy` 会**按配置文件重新计算绑定**，
+config 里声明为普通变量的名字会**覆盖并删除同名 secret**。
+于是流程变成：
+
+```
+设 secret → deploy → 写接口又变成全公开 → 设 secret → deploy → 又变全公开 …
+```
+
+而 deploy 日志里只有一行 `env.WRITE_TOKEN ("")`，**看不出任何异常**。
+换句话说：**每一次部署都在悄悄关掉你的写入保护。**
+
+本地开发根本不需要这个键 —— 用命令行参数传，不落盘、也不影响线上：
+
+```bash
+npm run dev -- --var WRITE_TOKEN:devtoken
+```
+
+**部署后必须确认这一项**（这是唯一可靠的判据）：
+
+```bash
+npx wrangler secret list              # 期望能看到 WRITE_TOKEN
+curl -s .../api/health                # 期望 writeProtected: true
+```
+
+`/api/health` 的 `writeProtected` 与写入守卫用的是**同一个表达式**
+（`String(env.WRITE_TOKEN || '').trim()`），所以它显示 `true`
+就等价于写接口确实被拦住了。反过来说：**如果这里显示 `false`，
+你的数据现在是任何人都能改的**，别忽略它。
 
 **这个模型的边界要说清楚**：它是「单租户、无登录」。前端把令牌存在
 localStorage 里，**能打开页面的人就能读到它**，所以它防的是「陌生人扫到你的

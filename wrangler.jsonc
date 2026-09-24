@@ -47,7 +47,7 @@
     {
       "binding": "DB",
       "database_name": "panwatch-db",
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_id": "4bf60921-7d87-4881-b8ab-6008312a985c"
     }
   ],
 
@@ -58,12 +58,22 @@
     "APP_VERSION": "0.2.0-h5",
 
     // 行情缓存 TTL（秒）。盘中 15 秒足够，再短只是白白打上游。
-    "QUOTE_TTL": "15",
+    "QUOTE_TTL": "15"
 
-    // 写入 token 的**默认值留空** —— 空表示「不校验」，
-    // 方便本地开发。生产环境请用 secret 覆盖：
+    // ⚠️ 这里**绝对不能**出现 "WRITE_TOKEN" 这个键。
+    //
+    // 踩过的坑：之前写了 "WRITE_TOKEN": ""（想着空值=不校验、方便本地开发），
+    // 结果每次 `wrangler deploy` 都会**把同名的 secret 删掉** ——
+    // 部署会按配置重新计算绑定，config 里声明为普通变量的名字会覆盖 secret。
+    // 表现是：设了 secret → 部署 → 写接口又变成全公开，
+    // 而 deploy 日志里只有一行 `env.WRITE_TOKEN ("")`，看不出任何异常。
+    //
+    // 本地开发不需要它：用命令行参数传即可，不落盘、不影响线上：
+    //   npm run dev -- --var WRITE_TOKEN:devtoken
+    //
+    // 生产环境只走 secret：
     //   npx wrangler secret put WRITE_TOKEN
-    // 设了 secret 之后，写接口就要求 Authorization: Bearer <token>。
-    "WRITE_TOKEN": ""
+    //   npx wrangler secret list      # 确认它在
+    //   curl .../api/health           # 确认 writeProtected: true
   }
 }

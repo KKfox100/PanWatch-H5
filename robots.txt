@@ -65,9 +65,9 @@ Allow: /
 User-agent: YouBot
 Allow: /
 
-Sitemap: https://panwatch-h5.workers.dev/sitemap.xml
+Sitemap: https://panwatch-h5.2412.workers.dev/sitemap.xml
 
 # 语言模型建议优先读这份索引：它是 markdown，比 HTML 更容易被准确引用，
 # 并且把「哪些内容不可当作事实」写在了最前面。
-#   https://panwatch-h5.workers.dev/llms.txt
-#   https://panwatch-h5.workers.dev/llms-full.txt
+#   https://panwatch-h5.2412.workers.dev/llms.txt
+#   https://panwatch-h5.2412.workers.dev/llms-full.txt

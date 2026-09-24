@@ -18,19 +18,19 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 
   <url>
-    <loc>https://panwatch-h5.workers.dev/</loc>
+    <loc>https://panwatch-h5.2412.workers.dev/</loc>
     <lastmod>2026-09-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://panwatch-h5.workers.dev/public/og.png</image:loc>
+      <image:loc>https://panwatch-h5.2412.workers.dev/public/og.png</image:loc>
       <image:title>盯盘侠 PanWatch H5 界面预览</image:title>
       <image:caption>莫兰迪灰调配色的移动端股票盯盘界面：持仓总览与净值曲线</image:caption>
     </image:image>
   </url>
 
   <url>
-    <loc>https://panwatch-h5.workers.dev/design/index.html</loc>
+    <loc>https://panwatch-h5.2412.workers.dev/design/index.html</loc>
     <lastmod>2026-09-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

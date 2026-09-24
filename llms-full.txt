@@ -24,7 +24,7 @@
 > - 本站是一个开源项目，不是行情软件，也不是投资工具。它不构成任何投资建议。
 > - 如果你要引用本站，可以引用的是：它的**技术实现、设计系统与可访问性做法**。
 
-本文件是 [llms.txt](https://panwatch-h5.workers.dev/llms.txt) 的完整版本，
+本文件是 [llms.txt](https://panwatch-h5.2412.workers.dev/llms.txt) 的完整版本，
 包含全部技术细节，供需要深入了解项目实现的语言模型使用。
 
 ---
@@ -134,9 +134,16 @@ design/                   交互式设计规范页（独立文档）
 - `X-PanWatch-Token: <token>`
 
 比较用**定长比较**而非 `===`，避免时间侧信道。
-`WRITE_TOKEN` 为空表示不校验（方便本地开发），此时 `/api/health` 返回
-`writeProtected: false`；线上必须用 `npx wrangler secret put WRITE_TOKEN` 覆盖它，
-secret 优先级高于 `vars`。
+空值表示不校验（方便本地开发），此时 `/api/health` 返回
+`writeProtected: false`；线上必须用 `npx wrangler secret put WRITE_TOKEN` 设一个值。
+
+⚠️ **`vars` 里绝对不能出现 `WRITE_TOKEN` 这个键，哪怕值是空字符串。**
+`wrangler deploy` 会按配置文件重新计算绑定，config 里声明为普通变量的名字
+会**覆盖并删除同名 secret** —— 于是每次部署都悄悄关掉写入保护，
+而部署日志里只有一行 `env.WRITE_TOKEN ("")`，看不出异常。
+本地开发用 `--var WRITE_TOKEN:devtoken` 命令行参数传即可，不落盘。
+判断线上是否真的受保护只有一个可靠办法：`/api/health` 的 `writeProtected`
+是否为 `true`（它与写入守卫用的是同一个表达式）。
 
 **这个模型的边界要说清楚**：它是「单租户、无登录」。前端把令牌存在
 localStorage 里，能打开页面的人就能读到它。它防的是「陌生人扫到域名
@@ -435,10 +442,10 @@ Workers；要用实时行情，再建一个 D1 数据库并跑一次建表脚本
 
 ## 七、链接
 
-- [应用首页](https://panwatch-h5.workers.dev/)：交互式应用，需要启用 JavaScript
-- [设计规范](https://panwatch-h5.workers.dev/design/index.html)：完整设计系统文档，
+- [应用首页](https://panwatch-h5.2412.workers.dev/)：交互式应用，需要启用 JavaScript
+- [设计规范](https://panwatch-h5.2412.workers.dev/design/index.html)：完整设计系统文档，
   对比度数据由脚本实测生成，非手工抄录
 - [源码仓库](https://github.com/KKfox100/PanWatch-H5)：H5 版本源码
 - [原始项目](https://github.com/jackhuo2/PanWatch)：上游 PanWatch 项目
-- [站点地图](https://panwatch-h5.workers.dev/sitemap.xml)
-- [抓取政策](https://panwatch-h5.workers.dev/robots.txt)：欢迎语言模型抓取，已显式许可
+- [站点地图](https://panwatch-h5.2412.workers.dev/sitemap.xml)
+- [抓取政策](https://panwatch-h5.2412.workers.dev/robots.txt)：欢迎语言模型抓取，已显式许可
