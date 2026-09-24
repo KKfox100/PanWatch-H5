@@ -1,0 +1,201 @@
+/* ==========================================================================
+   PanWatch H5 · 莫兰迪设计令牌
+   --------------------------------------------------------------------------
+   色板取自莫兰迪静物画的灰调：所有颜色都掺入一层暖灰，饱和度压低，
+   明度拉开但不刺眼。文字用暖炭灰而非纯黑，背景用燕麦米白而非纯白，
+   避免高对比带来的廉价感。
+   ========================================================================== */
+
+:root {
+  /* ---- 莫兰迪基础色板（原始色，供参考与拓展） ---- */
+  --morandi-blue:   #8ca3b4; /* 雾霾蓝 */
+  --morandi-sage:   #9caf9c; /* 鼠尾草绿 */
+  --morandi-clay:   #c2a08f; /* 陶土 */
+  --morandi-rose:   #c9a9a6; /* 豆沙粉 */
+  --morandi-lilac:  #a79bb0; /* 灰紫 */
+  --morandi-sand:   #cfc0a8; /* 沙 */
+  --morandi-stone:  #b3ada4; /* 暖石灰 */
+  --morandi-moss:   #a8ab90; /* 苔 */
+  --morandi-teal:   #93aaa5; /* 灰青 */
+
+  /* ---- 语义色：背景层 ---- */
+  --bg:            #efece6; /* 页面底 · 燕麦米白 */
+  --bg-elevated:   #f6f3ef; /* 顶栏 / 底栏 */
+  --surface:       #f8f6f2; /* 卡片面 */
+  --surface-2:     #ebe5dd; /* 次级面 · 内嵌块 */
+  --surface-3:     #e0d9cf; /* 三级面 · 进度槽 */
+  --overlay:       rgba(63, 59, 55, 0.42);
+
+  /* ---- 语义色：描边 ---- */
+  --line:          #ded7cc; /* 主分隔线 */
+  --line-soft:     #e9e3da; /* 弱分隔线 */
+  --line-strong:   #cec5b8; /* 强调描边 */
+
+  /* ---- 语义色：文字 ---- */
+  --ink:           #3f3b37; /* 主文字 · 暖炭灰 */
+  --ink-2:         #6d665e; /* 次文字 */
+  --ink-3:         #9c948a; /* 弱文字 / 占位 */
+  --ink-inverse:   #f8f6f2; /* 反白文字 */
+
+  /* ---- 语义色：主题强调 ---- */
+  --accent:        #7f97a8; /* 雾霾蓝 · 主强调 */
+  --accent-deep:   #64798a;
+  --accent-soft:   #dde4e9;
+  --accent-ink:    #4e6373;
+
+  --accent-2:      #9caf9c; /* 鼠尾草绿 · 次强调 */
+  --accent-2-soft: #e2e9e0;
+
+  /* ---- 语义色：涨跌（中国市场习惯：涨红跌绿） ---- */
+  /* 莫兰迪化的红绿：降低饱和、掺入灰调，久看不累 */
+  --up:            #b56a5e; /* 涨 · 陶土红 */
+  --up-deep:       #9c5348;
+  --up-soft:       #f0e0dc;
+  --down:          #6d9174; /* 跌 · 灰绿 */
+  --down-deep:     #557a5d;
+  --down-soft:     #e1e9e1;
+  --flat:          #9c948a;
+  --flat-soft:     #eae5dd;
+
+  /* ---- 语义色：状态 ---- */
+  --warn:          #c09a6a; /* 琥珀 */
+  --warn-soft:     #f2e7d8;
+  --info:          #8ca3b4;
+  --info-soft:     #e0e7ec;
+  --danger:        #b56a5e;
+  --danger-soft:   #f0e0dc;
+  --ok:            #6d9174;
+  --ok-soft:       #e1e9e1;
+
+  /* ---- 圆角 ---- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-full: 999px;
+
+  /* ---- 阴影：莫兰迪要的是「轻」，所以阴影极淡且带暖色 ---- */
+  --shadow-1: 0 1px 2px rgba(90, 78, 64, 0.05);
+  --shadow-2: 0 2px 8px rgba(90, 78, 64, 0.07);
+  --shadow-3: 0 6px 20px rgba(90, 78, 64, 0.10);
+  --shadow-nav: 0 -1px 0 var(--line), 0 -8px 24px rgba(90, 78, 64, 0.05);
+
+  /* ---- 尺寸 ---- */
+  --tap: 44px;            /* 最小可点区域 */
+  --appbar-h: 52px;
+  --tabbar-h: 56px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --pad: 14px;            /* 页面左右内边距 */
+
+  /* ---- 字体 ---- */
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei UI", "Microsoft YaHei", "Source Han Sans SC",
+          "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+  --font-num: "SF Mono", "JetBrains Mono", "Cascadia Mono", ui-monospace,
+              "DejaVu Sans Mono", Consolas, monospace;
+
+  /* ---- 动效 ---- */
+  --ease: cubic-bezier(0.32, 0.72, 0.28, 1);
+  --dur: 220ms;
+}
+
+/* ==========================================================================
+   暗色变体 · 莫兰迪夜
+   把明度整体翻转，但保留暖灰底色（用深棕灰而非纯黑），
+   强调色同步提亮以保证可读性。
+   ========================================================================== */
+[data-theme="dark"] {
+  --bg:            #232120;
+  --bg-elevated:   #2a2726;
+  --surface:       #2c2928;
+  --surface-2:     #353130;
+  --surface-3:     #403b39;
+  --overlay:       rgba(20, 18, 17, 0.62);
+
+  --line:          #3b3735;
+  --line-soft:     #332f2e;
+  --line-strong:   #4b4542;
+
+  --ink:           #ebe6df;
+  --ink-2:         #b0a89f;
+  --ink-3:         #7e766d;
+  --ink-inverse:   #232120;
+
+  --accent:        #93a9ba;
+  --accent-deep:   #a8bccb;
+  --accent-soft:   #333c43;
+  --accent-ink:    #c2d2dd;
+
+  --accent-2:      #a4b6a3;
+  --accent-2-soft: #333a32;
+
+  --up:            #cf8276;
+  --up-deep:       #e09b8f;
+  --up-soft:       #45312d;
+  --down:          #86a98c;
+  --down-deep:     #9dbda2;
+  --down-soft:     #2c3a2f;
+  --flat:          #8a827a;
+  --flat-soft:     #3a3634;
+
+  --warn:          #cfa877;
+  --warn-soft:     #40352a;
+  --info:          #93a9ba;
+  --info-soft:     #31383e;
+  --danger:        #cf8276;
+  --danger-soft:   #45312d;
+  --ok:            #86a98c;
+  --ok-soft:       #2c3a2f;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.34);
+  --shadow-3: 0 6px 20px rgba(0, 0, 0, 0.42);
+  --shadow-nav: 0 -1px 0 var(--line), 0 -8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 跟随系统：未手动指定主题时 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg:            #232120;
+    --bg-elevated:   #2a2726;
+    --surface:       #2c2928;
+    --surface-2:     #353130;
+    --surface-3:     #403b39;
+    --overlay:       rgba(20, 18, 17, 0.62);
+    --line:          #3b3735;
+    --line-soft:     #332f2e;
+    --line-strong:   #4b4542;
+    --ink:           #ebe6df;
+    --ink-2:         #b0a89f;
+    --ink-3:         #7e766d;
+    --ink-inverse:   #232120;
+    --accent:        #93a9ba;
+    --accent-deep:   #a8bccb;
+    --accent-soft:   #333c43;
+    --accent-ink:    #c2d2dd;
+    --accent-2:      #a4b6a3;
+    --accent-2-soft: #333a32;
+    --up:            #cf8276;
+    --up-deep:       #e09b8f;
+    --up-soft:       #45312d;
+    --down:          #86a98c;
+    --down-deep:     #9dbda2;
+    --down-soft:     #2c3a2f;
+    --flat:          #8a827a;
+    --flat-soft:     #3a3634;
+    --warn:          #cfa877;
+    --warn-soft:     #40352a;
+    --info:          #93a9ba;
+    --info-soft:     #31383e;
+    --danger:        #cf8276;
+    --danger-soft:   #45312d;
+    --ok:            #86a98c;
+    --ok-soft:       #2c3a2f;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.28);
+    --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.34);
+    --shadow-3: 0 6px 20px rgba(0, 0, 0, 0.42);
+    --shadow-nav: 0 -1px 0 var(--line), 0 -8px 24px rgba(0, 0, 0, 0.3);
+  }
+}

@@ -1,0 +1,33 @@
+# ==========================================================================
+# Cloudflare Workers 静态资源响应头
+# Workers 的静态资源托管会读取根目录的 _headers 文件（与 Pages 同语法）。
+# ==========================================================================
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# HTML 必须短缓存：发版后要立刻生效，否则用户拿到旧页面会白屏或报错
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# 带版本号的静态资源可以长缓存
+/css/*
+  Cache-Control: public, max-age=604800
+
+/js/*
+  Cache-Control: public, max-age=604800
+
+/public/*
+  Cache-Control: public, max-age=604800
+
+# Service Worker 绝不能被长缓存，否则无法更新
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /

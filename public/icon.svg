@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8ca3b4"/>
+      <stop offset="100%" stop-color="#9caf9c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 莫兰迪渐变底 -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- 趋势折线 -->
+  <path d="M96 336 L176 256 L240 304 L320 200 L416 152"
+        fill="none" stroke="#f6f3ef" stroke-width="26"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M320 152 L416 152 L416 248"
+        fill="none" stroke="#f6f3ef" stroke-width="26"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+  <!-- 数据点 -->
+  <circle cx="96" cy="336" r="20" fill="#f6f3ef"/>
+  <circle cx="240" cy="304" r="20" fill="#f6f3ef"/>
+  <circle cx="416" cy="152" r="24" fill="#f6f3ef"/>
+</svg>

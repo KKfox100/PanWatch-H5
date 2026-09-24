@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "panwatch-h5",
+  "compatibility_date": "2026-09-01",
+
+  // 纯静态站点：没有服务端逻辑，Workers 只负责把资源从边缘节点发出去。
+  // 目录用 "." —— 项目根就是站点根，index.html 直接对外。
+  "assets": {
+    "directory": ".",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application",
+
+    // 只发布真正要上线的资源，源码文档 / 脚本 / 配置不传到边缘
+    "exclude": [
+      "node_modules/**",
+      ".git/**",
+      ".github/**",
+      "scripts/**",
+      "docs/**",
+      "wrangler.jsonc",
+      "wrangler.toml",
+      "package.json",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      ".gitignore",
+      ".editorconfig",
+      "**/*.md"
+    ]
+  },
+
+  "observability": { "enabled": true },
+
+  "vars": {
+    "APP_NAME": "PanWatch H5",
+    "APP_VERSION": "0.1.0-h5"
+  }
+}

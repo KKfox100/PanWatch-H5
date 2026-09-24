@@ -1,0 +1,45 @@
+{
+  "name": "盯盘侠 PanWatch H5",
+  "short_name": "盯盘侠",
+  "description": "自托管 AI 盯盘助手的移动端 H5 版本 —— A股/港股/美股持仓管理、AI 评分选股、价格提醒。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#efece6",
+  "theme_color": "#efece6",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "持仓", "url": "./index.html#/portfolio" },
+    { "name": "机会", "url": "./index.html#/opportunities" },
+    { "name": "提醒", "url": "./index.html#/alerts" }
+  ]
+}
