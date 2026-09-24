@@ -191,6 +191,53 @@ export function render() {
     })}
   </div>
 
+  <!-- 关于本项目 ——
+       这段散文有两个用途：一是让用户（以及会执行 JS 的抓取器）在应用内
+       读到项目到底是什么；二是给 index.html 里的 FAQPage 结构化数据提供
+       「对读者可见」的实体依据 —— Google 要求标记的内容必须能被读者看到，
+       不能只活在 <script> 里。
+
+       下面的问答与 index.html 的 JSON-LD、<noscript> 三处必须逐字一致，
+       scripts/check.mjs 会核对。注意 dt/dd 必须各占一行：跨行断开会插入
+       空格，核对时对不上。 -->
+  <div class="section-title">${icon('book')}<span>关于本项目</span></div>
+  <div class="card card--pad about-prose" style="margin-bottom:12px">
+    <p>
+      「盯盘侠 PanWatch H5」是自托管 AI 盯盘助手 <strong>PanWatch</strong> 的移动端版本：
+      把持仓、自选、提醒与模拟盘搬进浏览器，打开网页就能用，不需要安装 App，
+      也不需要服务器。
+    </p>
+    <p>
+      界面内所有行情、持仓、AI 评分与投资结论都是<strong>内置的演示数据</strong>，
+      由确定性伪随机序列生成，不来自任何真实行情源，也不构成投资建议。
+      这是一个用来展示界面与交互的开源前端模板 —— 把其中任何一个数字
+      当成实时行情，都会得出错误结论。
+    </p>
+    <p>
+      工程上刻意保持<strong>零构建、零运行时依赖</strong>：没有打包步骤，没有框架，
+      图表是手写的 SVG。偏好设置只存在浏览器本地，不上传任何数据。源码基于
+      <a href="https://github.com/jackhuo2/PanWatch" target="_blank" rel="noopener">jackhuo2/PanWatch</a>
+      改造，以 MIT 许可开源在
+      <a href="https://github.com/KKfox100/PanWatch-H5" target="_blank" rel="noopener">KKfox100/PanWatch-H5</a>。
+    </p>
+  </div>
+
+  <div class="section-title">${icon('info')}<span>常见问题</span></div>
+  <div class="card card--pad" style="margin-bottom:14px">
+    <dl class="about-faq">
+      <dt>盯盘侠 PanWatch H5 需要服务器或数据库吗？</dt>
+      <dd>不需要。它是纯静态站点，没有后端。偏好设置存在浏览器的 localStorage 里，不上传任何数据。</dd>
+      <dt>它连接真实的行情数据源吗？</dt>
+      <dd>不连接。所有数字都是内置的演示数据，由确定性伪随机序列生成，不随市场变化。要接真实数据需要自行实现后端。</dd>
+      <dt>支持哪些股票市场？</dt>
+      <dd>A股、港股、美股。多币种持仓会按内置汇率折算成人民币，统一计算市值与盈亏。</dd>
+      <dt>为什么界面配色是灰调的？</dt>
+      <dd>色板取自莫兰迪静物画的灰调，所有颜色都掺入一层暖灰并压低饱和度。涨跌仍严格遵循中国市场习惯：涨红跌绿。全部配色按 WCAG 2.1 验算过对比度。</dd>
+      <dt>可以自己部署吗？</dt>
+      <dd>可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers 的静态资源托管。</dd>
+    </dl>
+  </div>
+
   <div class="section-title">${icon('warn')}<span>数据管理</span></div>
   <div class="list" style="margin-bottom:14px">
     ${settingRow({

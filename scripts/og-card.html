@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>OG 卡片源文件</title>
+<!-- ==========================================================================
+     Open Graph 分享卡片的源文件（1200 × 630）。
+     由 scripts/gen-og.cjs 用无头浏览器截图，产出 public/og.png。
+
+     为什么要用 HTML 而不是画图工具：
+     卡片直接 link 应用的 tokens.css，用的是同一套色板与字号 ——
+     改了令牌，重新跑一次脚本，分享图自动跟着变，不会和应用视觉分叉。
+
+     这张卡不在部署范围内（scripts/ 被 .assetsignore 排除），
+     它只是 public/og.png 的生成源。
+     ========================================================================== -->
+<link rel="stylesheet" href="../css/tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 背景：两层极淡的径向光斑，制造一点纵深，但不抢主体 */
+  .glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(720px 460px at 88% -8%, color-mix(in srgb, var(--sage-fill) 22%, transparent), transparent 70%),
+      radial-gradient(640px 420px at -6% 106%, color-mix(in srgb, var(--accent-fill) 20%, transparent), transparent 70%);
+  }
+
+  /* 细网格，很淡，只为了让大片留白不显得空 */
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(900px 620px at 30% 40%, #000 20%, transparent 78%);
+  }
+
+  .wrap {
+    position: relative;
+    height: 100%;
+    padding: 66px 72px 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- 品牌 ---- */
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 46px; }
+
+  .brand__mark {
+    width: 44px; height: 44px;
+    border-radius: var(--r-sm);
+    background: linear-gradient(140deg, var(--accent-fill), var(--sage-fill));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-2);
+  }
+  .brand__mark svg { width: 26px; height: 26px; display: block; }
+
+  .brand__name { font-size: 22px; font-weight: var(--fw-bold); letter-spacing: var(--ls-tight); }
+  .brand__ver {
+    font-size: 12px; font-weight: var(--fw-bold); letter-spacing: var(--ls-wide);
+    padding: 3px 9px; border-radius: var(--r-full);
+    background: var(--accent-soft); color: var(--accent-on-soft);
+  }
+
+  /* ---- 主标题 ---- */
+  h1 {
+    font-size: 66px;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: var(--fw-bold);
+    margin-bottom: 18px;
+  }
+  h1 .dim { color: var(--ink-3); }
+
+  .sub {
+    font-size: 27px;
+    line-height: 1.4;
+    color: var(--ink-2);
+    margin-bottom: 38px;
+  }
+
+  /* ---- 特性标签 ---- */
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: auto; }
+  .chip {
+    font-size: 16px;
+    padding: 8px 16px;
+    border-radius: var(--r-full);
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  /* ---- 底部条 ---- */
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 20px 0 34px;
+    border-top: 1px solid var(--line);
+  }
+  .foot__stack { display: flex; align-items: center; gap: 10px; font-size: 17px; color: var(--ink-2); }
+  .foot__stack b { color: var(--ink); font-weight: var(--fw-bold); }
+  .foot__dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 15px; font-weight: var(--fw-bold);
+    padding: 8px 15px;
+    border-radius: var(--r-full);
+    background: var(--warn-soft);
+    color: var(--warn-on-soft);
+    white-space: nowrap;
+  }
+  .badge svg { width: 15px; height: 15px; }
+
+  /* ---- 右侧装饰：一张极简的指标卡 + 走势线 ---- */
+  .peek {
+    position: absolute;
+    right: -34px;
+    top: 150px;
+    width: 330px;
+    padding: 22px;
+    border-radius: var(--r-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-3);
+    border: 1px solid var(--line);
+    transform: rotate(3.5deg);
+  }
+  .peek__label {
+    font-size: 13px; color: var(--ink-3);
+    display: flex; align-items: center; gap: 7px;
+    margin-bottom: 8px;
+  }
+  .peek__label svg { width: 14px; height: 14px; }
+  .peek__value {
+    font-size: 40px; font-weight: var(--fw-bold);
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--ls-tight);
+    line-height: 1.1;
+  }
+  .peek__value small { font-size: 17px; font-weight: var(--fw-medium); color: var(--ink-3); margin-left: 5px; }
+  .peek__delta {
+    font-size: 16px; font-weight: var(--fw-bold);
+    font-family: var(--font-num);
+    color: var(--up-text);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .peek__spark { margin-top: 16px; }
+  .peek__spark svg { display: block; width: 100%; height: 56px; }
+
+  .peek2 {
+    position: absolute;
+    right: 190px;
+    bottom: 108px;
+    width: 232px;
+    padding: 16px 18px;
+    border-radius: var(--r-md);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-2);
+    border: 1px solid var(--line);
+    transform: rotate(-2.5deg);
+    display: flex;
+    align-items: center;
+    gap: 13px;
+  }
+  .peek2__ring { flex: none; }
+  .peek2__ring svg { display: block; }
+  .peek2__t { font-size: 13px; color: var(--ink-3); margin-bottom: 3px; }
+  .peek2__v {
+    font-size: 19px; font-weight: var(--fw-bold);
+    font-family: var(--font-num); font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="grid"></div>
+
+  <!-- 右侧装饰：模拟应用里的指标卡，让人一眼看出这是看盘工具 -->
+  <div class="peek">
+    <div class="peek__label">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+      总资产
+    </div>
+    <div class="peek__value">1,847.32<small>万元</small></div>
+    <div class="peek__delta">+29.44万 · +1.62%</div>
+    <div class="peek__spark">
+      <svg viewBox="0 0 286 56" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="og1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--up-fill)" stop-opacity="0.26"/>
+            <stop offset="100%" stop-color="var(--up-fill)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M2 44 C 26 40, 40 30, 62 33 S 98 44, 122 36 S 158 16, 184 20 S 232 12, 254 8 L 284 6 L 284 54 L 2 54 Z" fill="url(#og1)"/>
+        <path d="M2 44 C 26 40, 40 30, 62 33 S 98 44, 122 36 S 158 16, 184 20 S 232 12, 254 8 L 284 6"
+              fill="none" stroke="var(--up-fill)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="284" cy="6" r="4" fill="var(--up-fill)" stroke="var(--surface-raised)" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="peek2">
+    <div class="peek2__ring">
+      <svg width="54" height="54" viewBox="0 0 54 54">
+        <circle cx="27" cy="27" r="21" fill="none" stroke="var(--surface-well)" stroke-width="9"/>
+        <circle cx="27" cy="27" r="21" fill="none" stroke="var(--accent-fill)" stroke-width="9"
+                stroke-dasharray="82 50" transform="rotate(-90 27 27)" stroke-linecap="butt"/>
+        <circle cx="27" cy="27" r="21" fill="none" stroke="var(--sage-fill)" stroke-width="9"
+                stroke-dasharray="30 102" stroke-dashoffset="-82" transform="rotate(-90 27 27)" stroke-linecap="butt"/>
+      </svg>
+    </div>
+    <div>
+      <div class="peek2__t">持仓分布</div>
+      <div class="peek2__v">A股 62%</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="brand">
+      <span class="brand__mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-inverse)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 17l5-6 4 4 5-8 4 5"/>
+        </svg>
+      </span>
+      <span class="brand__name">盯盘侠</span>
+      <span class="brand__ver">H5</span>
+    </div>
+
+    <h1>盯盘侠 PanWatch<br><span class="dim">移动端 H5</span></h1>
+    <p class="sub">自托管 AI 盯盘助手 · 多市场持仓、评分选股、价格提醒</p>
+
+    <div class="chips">
+      <span class="chip">A股 / 港股 / 美股</span>
+      <span class="chip">AI 评分选股</span>
+      <span class="chip">价格提醒</span>
+      <span class="chip">模拟盘</span>
+    </div>
+
+    <div class="foot">
+      <div class="foot__stack">
+        <b>纯静态</b><span class="foot__dot"></span>
+        <b>零构建</b><span class="foot__dot"></span>
+        <b>零依赖</b><span class="foot__dot"></span>
+        <span>Cloudflare Workers</span>
+      </div>
+      <span class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>
+        </svg>
+        界面内所有行情均为演示数据
+      </span>
+    </div>
+  </div>
+</body>
+</html>

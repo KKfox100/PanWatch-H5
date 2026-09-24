@@ -152,18 +152,94 @@ npm run dev                     # → http://127.0.0.1:8787
 ### 自检与端到端测试
 
 ```bash
-node scripts/check.mjs          # 静态自检：import 路径 / 资源引用 / SW 清单 / 图标名 / 事件绑定
+node scripts/check.mjs          # 静态自检：import 路径 / 资源引用 / SW 清单 / 图标名 / 事件绑定 / FAQ 三处一致性
 node scripts/audit-contrast.mjs # 对比度审计 + 令牌泄漏扫描（纯 Node，不需要浏览器）
 node scripts/e2e.cjs            # 应用端到端（需先起 serve.mjs）
 node scripts/e2e-design.cjs     # 设计规范页端到端（同样需先起 serve.mjs）
+node scripts/e2e-seo.cjs        # SEO / LLMO 端到端（同样需先起 serve.mjs）
 
-npm run verify                  # 上面四项一次跑完
+npm run verify                  # 上面五项一次跑完
 ```
 
 `e2e.cjs` 用系统已装的 Chrome 通过 CDP 驱动，**不装 Playwright**，
 覆盖 12 组共 97 项断言：首屏、莫兰迪令牌、涨红跌绿、七个路由、
 数据自洽、图表绘制、弹层动态增删、主题切换与对比度、持久化、
 控制台零报错、桌面端居中布局，并输出移动端与桌面端截图。
+
+`e2e-seo.cjs` 覆盖 9 组共 99 项断言。最值得注意的是第 8 组：它用 CDP 的
+`Emulation.setScriptExecutionDisabled` **真的把 JavaScript 关掉**再导航，
+然后用 DOM 域（不依赖页面 JS 执行）确认回退内容成了真实 DOM 节点。
+
+只查 `display !== 'none'` 是不够的 —— 还得用 `DOM.getBoxModel` 确认它落在
+首屏视口内。因为「在 DOM 里」不等于「用户看得见」：骨架屏的 `min-height: 100dvh`
+曾经把整篇回退文章顶到视口之外，断言全绿而截图是空的。
+
+---
+
+## SEO 与 LLMO
+
+这个应用是 100% 客户端渲染的，这带来一个不显眼但后果严重的问题：
+
+> **GPTBot、ClaudeBot、PerplexityBot、CCBot 基本都不执行 JavaScript。**
+> 不处理的话，它们拿到的只有一具骨架屏 —— 站点在语言模型眼里是一片空白。
+
+所以「LLMO」（面向语言模型的优化）在这里不是锦上添花，是补一个真实缺陷。
+做法分三层。
+
+### 一、机器可读层
+
+| 文件 | 作用 |
+|---|---|
+| `robots.txt` | 通配放行，并**逐个显式列出 17 个 AI 抓取器**。显式列出的理由是防将来误伤：通配规则哪天被人改成 `Disallow: /`，这些显式行还在 |
+| `sitemap.xml` | 只列 2 个真实 URL（`/` 与 `/design/index.html`）。哈希路由不该进 sitemap |
+| `llms.txt` | 按 llmstxt.org 约定写的摘要，**免责声明放在前 600 字符内** |
+| `llms-full.txt` | 完整版：架构、工程约束、设计令牌全表、对比度实测结果 |
+| `_headers` | 给上述文件钉死 `Content-Type` —— 抓取器拿到 `text/html` 的 `robots.txt` 会静默忽略整份文件 |
+
+### 二、无 JavaScript 回退内容
+
+`index.html` 里的 `<noscript>` 是一篇完整的语义化文章：h1、5 个 h2 分节、
+功能清单、FAQ 定义列表、来源与许可。
+
+利用的是 `<noscript>` 的双重语义 —— 脚本关闭时子节点被当作普通标记解析
+（成为真实 DOM 节点），脚本开启时作为纯文本被忽略。所以它对用户零影响，
+不构成「隐藏文字」，也不会闪一下再消失。
+
+里面还内嵌了一段 `<style>` 把骨架屏 `#app` 隐藏掉：它的 `min-height: 100dvh`
+会把整篇文章顶出首屏，无 JS 用户看到的是一个永远转不完的骨架屏。
+
+### 三、结构化数据
+
+`<head>` 里用 `@graph` 装了三个互相引用的实体：
+
+- **`WebSite`** / **`WebApplication`** —— 后者带 `disambiguatingDescription`，
+  明确声明界面内所有行情都是伪随机演示数据、不构成投资建议。
+  这个字段存在的意义就是告诉语言模型「不要把本站数据当真实行情引用」。
+- **`FAQPage`** —— 5 组问答。
+
+⚠️ **FAQ 的内容写在三个地方，必须逐字一致：**
+
+| 位置 | 给谁看 |
+|---|---|
+| `index.html` 的 JSON-LD | 机器 |
+| `index.html` 的 `<noscript>` | 不执行 JS 的读者与抓取器 |
+| 设置页的 `.about-faq` | 真实用户，以及会渲染页面的抓取器 |
+
+Google 要求结构化数据标记的内容必须对读者可见，三处漂移就变成
+「标记了读者看不到的内容」。所以 `scripts/check.mjs` 会逐条核对，
+`e2e-seo.cjs` 第 9 组还会真的把应用跑起来、从渲染结果里读一遍。
+
+### 一个容易踩的坑：软 404
+
+`wrangler.jsonc` 里**不能**用 `not_found_handling: "single-page-application"`。
+
+本项目是哈希路由，真实 URL 只有 `/` 和 `/design/index.html`，`#` 后面的内容
+根本不会发给服务器 —— SPA 回退在这里毫无用处，只会让任意乱输的路径都返回
+200 + 首页内容。搜索引擎会把它们当作无限多份重复页面收录，这就是
+**软 404（soft 404）**。它很隐蔽：站点看着一切正常，只是搜索结果质量在慢慢被稀释。
+
+改用 `"404-page"` 配一个真正的 `404.html`。同理，`scripts/serve.mjs` 也
+**不做** SPA 回退 —— 本地行为必须与线上一致，否则这类问题在开发阶段永远发现不了。
 
 ---
 
@@ -183,11 +259,13 @@ npm run deploy           # → https://panwatch-h5.<你的子域>.workers.dev
 几个已经处理好的细节：
 
 - `assets.directory: "."` —— 项目根即站点根，`index.html` 直接对外
-- **`.assetsignore`** —— 只发布 24 个运行时文件，`.git` / `scripts` / `docs` /
+- **`.assetsignore`** —— 只发布 33 个运行时文件，`.git` / `scripts` / `docs` /
   配置文件都不上边缘（注意 `assets` 配置里**没有** `exclude` 字段，
   写在那里会被静默忽略并把整个仓库传上去）
-- `not_found_handling: "single-page-application"` —— 深链回落，直接开 `#/portfolio` 也能用
-- `_headers` —— HTML 短缓存（发版即生效）、静态资源长缓存、SW 绝不缓存
+- `not_found_handling: "404-page"` —— 未知路径返回真 404。**不能**用
+  `"single-page-application"`，哈希路由下它只会造出软 404（见上一节）
+- `_headers` —— HTML 短缓存（发版即生效）、静态资源长缓存、SW 绝不缓存、
+  抓取资产钉死 MIME
 - 自定义域名：Cloudflare 控制台 → Workers → 你的 Worker → Settings → Domains & Routes
 
 完整步骤见 **[DEPLOY.md](./DEPLOY.md)**。

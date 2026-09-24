@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#efece6">
+<meta name="color-scheme" content="light dark">
+
+<!-- ==========================================================================
+     404 页面
+     --------------------------------------------------------------------------
+     由 wrangler.jsonc 的 not_found_handling: "404-page" 指向。
+
+     为什么需要它：这个应用是**哈希路由**的，真实的 URL 只有 `/` 与
+     `/design/index.html` 两个。如果继续用 single-page-application 回退，
+     任何乱敲的路径都会返回 200 + 应用外壳 —— 搜索引擎会把它们全部当成
+     有效页面收录，形成无限个内容重复的软 404。
+
+     404 页必须 noindex：否则它自己也会被收录，变成一个「内容是错误提示」
+     的低质量页面。
+     ========================================================================== -->
+<meta name="robots" content="noindex,follow">
+<title>页面不存在 · 盯盘侠 PanWatch H5</title>
+
+<link rel="icon" type="image/svg+xml" href="/public/icon.svg">
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/base.css">
+
+<style>
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--sp-6);
+  }
+
+  .nf {
+    max-width: 42ch;
+    width: 100%;
+    text-align: center;
+  }
+
+  .nf__mark {
+    width: 60px; height: 60px;
+    margin: 0 auto var(--sp-6);
+    border-radius: var(--r-md);
+    background: linear-gradient(140deg, var(--accent-fill), var(--sage-fill));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-2);
+  }
+  .nf__mark svg { width: 32px; height: 32px; display: block; }
+
+  .nf__code {
+    font-family: var(--font-num);
+    font-size: var(--fs-3xl);
+    font-weight: var(--fw-bold);
+    letter-spacing: var(--ls-tight);
+    color: var(--ink-3);
+    line-height: var(--lh-tight);
+    margin-bottom: var(--sp-2);
+  }
+
+  .nf h1 {
+    font-size: var(--fs-xl);
+    font-weight: var(--fw-bold);
+    color: var(--ink);
+    line-height: var(--lh-snug);
+    margin-bottom: var(--sp-3);
+  }
+
+  .nf p {
+    font-size: var(--fs-sm);
+    line-height: var(--lh-relaxed);
+    color: var(--ink-2);
+    margin-bottom: var(--sp-6);
+  }
+
+  .nf__acts { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+  .nf__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    height: var(--tap);
+    padding: 0 var(--sp-4);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-bold);
+    text-decoration: none;
+    background: var(--accent-fill);
+    color: var(--ink-inverse);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-fill) 35%, transparent);
+  }
+  .nf__btn svg { width: 16px; height: 16px; }
+
+  .nf__btn--ghost {
+    background: var(--surface-raised);
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+    box-shadow: none;
+  }
+
+  .nf__foot {
+    margin-top: var(--sp-8);
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--line);
+    font-size: var(--fs-2xs);
+    color: var(--ink-3);
+    line-height: var(--lh-normal);
+  }
+</style>
+</head>
+<body>
+  <main class="nf">
+    <div class="nf__mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-inverse)" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 17l5-6 4 4 5-8 4 5"/>
+      </svg>
+    </div>
+
+    <p class="nf__code">404</p>
+    <h1>这个页面不存在</h1>
+    <p>
+      盯盘侠 PanWatch H5 是一个单页应用，所有页面都在首页里切换 ——
+      地址栏里只会有 <code>#/</code> 开头的片段，不会有别的路径。
+      你访问的地址不在这个站点上。
+    </p>
+
+    <div class="nf__acts">
+      <a class="nf__btn" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        回到首页
+      </a>
+      <a class="nf__btn nf__btn--ghost" href="/design/index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+        </svg>
+        查看设计规范
+      </a>
+    </div>
+
+    <p class="nf__foot">
+      本站界面内所有行情与持仓均为演示数据，不构成投资建议。
+    </p>
+  </main>
+</body>
+</html>

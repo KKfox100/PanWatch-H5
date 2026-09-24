@@ -9,6 +9,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Language: zh-CN
 
 # HTML 必须短缓存：发版后要立刻生效，否则用户拿到旧页面会白屏或报错
 /index.html
@@ -16,6 +17,37 @@
 
 /
   Cache-Control: public, max-age=0, must-revalidate
+
+# 404 页：noindex 用 meta 标签写在页面里更可靠 ——
+# _headers 是按**请求路径**匹配的，而 404 页是被任意路径触发返回的，
+# 写 /404.html 规则只能覆盖「直接访问 /404.html」这一种情况。
+# 这里加一遍是为了双保险，真正的保证是 HTTP 404 状态码本身。
+/404.html
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex
+
+/design/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ---- SEO / LLMO 资产 ----
+# 这几个文件的 MIME 必须明确。静态资源服务器通常能按扩展名猜对，
+# 但猜错时的表现很隐蔽：抓取器拿到 text/html 的 robots.txt 会直接忽略它，
+# 而且不会报任何错 —— 表现为「站点莫名其妙没被收录」。
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
 
 # 带版本号的静态资源可以长缓存
 /css/*

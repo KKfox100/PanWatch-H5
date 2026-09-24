@@ -81,7 +81,7 @@ Deployed panwatch-h5 triggers (0.31 sec)
 npm run dev      # → http://127.0.0.1:8787
 ```
 
-`wrangler dev` 会按线上同样的规则处理 `_headers`、SPA 回落和资源路径，
+`wrangler dev` 会按线上同样的规则处理 `_headers`、404 行为和资源路径，
 所以它是比 `python -m http.server` 更可靠的预检。
 
 ---
@@ -99,16 +99,24 @@ npm run dev      # → http://127.0.0.1:8787
   "assets": {
     "directory": ".",                                  // 项目根即站点根
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application"    // 深链回落
+    "not_found_handling": "404-page"                   // 未知路径返回真 404
   },
   "observability": { "enabled": true }
 }
 ```
 
 - **`directory: "."`** —— `index.html` 在根目录，站点根直接对外，路径最干净
-- **`not_found_handling: "single-page-application"`** ——
-  哈希路由其实不需要它（`#/portfolio` 的 `#` 后面不会发给服务器），
-  但加上它可以兜住将来改成 history 路由的情况，以及用户手抖输错路径
+- **`not_found_handling: "404-page"`** —— 未知路径返回 `404.html` 的内容
+  与**真实的 404 状态码**。
+
+  ⚠️ **不要改成 `"single-page-application"`。** 本项目是哈希路由，真实 URL
+  只有 `/` 和 `/design/index.html`，`#` 后面的内容根本不会发给服务器 ——
+  SPA 回退在这里没有任何用处，只会让任意乱输的路径都返回 200 + 首页内容。
+  搜索引擎会把它们当成无限多份重复页面收录，也就是**软 404（soft 404）**。
+
+  这个坑很隐蔽：站点看着一切正常，只是搜索结果的质量在慢慢被稀释。
+  同理，`scripts/serve.mjs` 也**不做** SPA 回退 —— 本地行为必须与线上一致，
+  否则这类问题在开发阶段永远发现不了。
 
 > ⚠️ **`assets` 里没有 `exclude` 字段。** 写成
 > ```jsonc
@@ -135,15 +143,21 @@ docs/
 LICENSE
 ```
 
-排除后真正上边缘的运行时文件分两组：
+排除后真正上边缘的运行时文件分三组：
 
-- **应用本体 24 个**：`index.html`、`sw.js`、`css/*`（3 个）、
-  `js/*`（7 个）、`js/views/*`（7 个）、`public/*`（5 个）。
+- **应用本体 26 个**：`index.html`、`404.html`、`sw.js`、`css/*`（3 个）、
+  `js/*`（7 个）、`js/views/*`（7 个）、`public/*`（6 个）。
+- **抓取资产 4 个**：`robots.txt`、`sitemap.xml`、`llms.txt`、`llms-full.txt`
+  （作用见 README 的「SEO 与 LLMO」一节）。
 - **设计规范页 3 个**：`design/index.html`、`design/spec.css`、`design/spec.js`。
+
+另外根目录还有 `_headers`，它**不会作为静态资源对外提供** —— wrangler 内置
+就把它排除了（连同 `_redirects`），因为它的用途是被解析成响应头规则。
+所以磁盘上是 34 个运行时文件，能对外取到的是 33 个。
 
 `design/` 是**故意不排除**的 —— 它是交付物的一部分，上线后
 `https://<你的域名>/design/index.html` 可以直接分享给别人看设计规范。
-它能独立工作，是因为它复用了应用自己的 `css/*` 和 `js/*`（都在上面那 24 个里），
+它能独立工作，是因为它复用了应用自己的 `css/*` 和 `js/*`（都在上面那 26 个里），
 页面里没有自己的副本。不想公开的话，在 `.assetsignore` 里加一行 `design/` 即可。
 
 **验证排除是否真的生效**（这一步很关键，因为默认输出会误导你）：
@@ -164,9 +178,12 @@ Cloudflare 的静态资源托管会读根目录的 `_headers` 文件（语法与
 
 | 路径 | 策略 | 原因 |
 |---|---|---|
+| 全局 | `Content-Language: zh-CN` | 站点是简体中文，显式声明省得抓取器猜 |
 | `/index.html` | `max-age=0, must-revalidate` | **发版必须立刻生效**，否则用户拿到旧 HTML 配新 JS 会白屏 |
+| `/404.html` | `max-age=0, must-revalidate` + `X-Robots-Tag: noindex` | 404 页不该被收录，也不该被缓存。注意 `_headers` 按**请求路径**匹配，而 404 页是被任意路径触发返回的 —— 这条规则只覆盖「直接访问 `/404.html`」，真正的保证是页面里的 `<meta name="robots">` 与 HTTP 404 状态码本身 |
 | `/css/*`、`/js/*`、`/public/*` | `max-age=604800` | 静态资源内容稳定，长缓存省流量 |
 | `/sw.js` | `max-age=0, must-revalidate` | **Service Worker 绝不能被缓存**，否则永远更新不了 |
+| `/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/llms-full.txt` | 钉死 `Content-Type`，`max-age=3600` | 抓取器拿到 `text/html` 的 `robots.txt` 会**静默忽略整份文件** —— 没有任何报错，只是那些规则不再生效 |
 
 Cloudflare 对静态资源的默认缓存策略已经是 `public, max-age=0, must-revalidate`
 （每次都带 `ETag` 回源校验），所以 `_headers` 的作用主要是**放宽**静态资源的
@@ -252,12 +269,27 @@ curl -sI https://panwatch-h5.<子域>.workers.dev/js/app.js | grep -i content-ty
 # 3. 响应头生效
 curl -sI https://panwatch-h5.<子域>.workers.dev/index.html | grep -i cache-control
 
-# 4. 深链能开（应返回 200 而不是 404）
+# 4. 未知路径必须返回真 404（不是 200 + 首页）
+#    如果这里是 200，说明 not_found_handling 又被改回了 SPA 回退，会造软 404
 curl -sI https://panwatch-h5.<子域>.workers.dev/anything-not-exist | head -3
+
+# 5. 抓取资产可达，且 MIME 正确
+for p in robots.txt sitemap.xml llms.txt llms-full.txt; do
+  curl -s -o /dev/null -w "$p  %{http_code}  %{content_type}\n" \
+    https://panwatch-h5.<子域>.workers.dev/$p
+done
+
+# 6. 无 JS 回退内容确实在页面里（这是语言模型唯一能看到的东西）
+curl -s https://panwatch-h5.<子域>.workers.dev/ | grep -c "nojs__badge"
 ```
+
+第 4 项和第 6 项是最容易在部署后被无声破坏的两项：前者一改配置就退化成软 404，
+后者只要有人「顺手清理」一下 `<noscript>` 就会让站点在语言模型眼里变成空白。
 
 浏览器里再确认：控制台无报错、DevTools → Application → Manifest 能读到、
 Service Worker 状态为 activated、切到手机模拟器布局正常。
+再把浏览器 JavaScript 关掉刷新一次 —— 应该看到一篇完整的说明文章，
+而不是一个永远转不完的骨架屏。
 
 ---
 
@@ -294,7 +326,7 @@ Workers 的静态资源挂在域名根，不支持子路径挂载。
 | Vercel | `npx vercel deploy`，框架选 Other |
 | Netlify | 拖拽整个目录到 Netlify Drop |
 | GitHub Pages | 推到仓库，Settings → Pages → 选分支根目录 |
-| 自建 Nginx | `cp -r . /var/www/panwatch-h5`，注意配 SPA 回落和 MIME |
+| 自建 Nginx | `cp -r . /var/www/panwatch-h5`。**别配 SPA 回落**（会造软 404，理由见「四」），配好 MIME，并让未知路径真的返回 404 状态码 |
 
 除了 Cloudflare 之外的平台不认 `_headers` 文件，
 需要把缓存策略改写到对应平台的配置里（`vercel.json` / `netlify.toml` / nginx.conf）。

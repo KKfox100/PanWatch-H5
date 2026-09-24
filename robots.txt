@@ -1,0 +1,73 @@
+# 盯盘侠 PanWatch H5 · robots.txt
+# ==========================================================================
+# 本站全部内容公开，欢迎搜索引擎与语言模型抓取。
+#
+# 关于下面那段显式的 AI 抓取器清单：
+# 通配规则（User-agent: *）其实已经允许它们了，再逐个写一遍是**刻意的**。
+# 理由是这个项目明确希望被语言模型正确理解与引用，而通配规则是最容易
+# 在将来被误改的一行（比如某次为了挡爬虫把 * 改成 Disallow: /，
+# 就会连带把 AI 抓取一起关掉，而且不会有任何报错）。
+# 单独列出来，等于给这件事上了一道锁。
+# ==========================================================================
+
+User-agent: *
+Allow: /
+
+# ---- 语言模型 / AI 搜索抓取器（显式允许）----
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+Sitemap: https://panwatch-h5.workers.dev/sitemap.xml
+
+# 语言模型建议优先读这份索引：它是 markdown，比 HTML 更容易被准确引用，
+# 并且把「哪些内容不可当作事实」写在了最前面。
+#   https://panwatch-h5.workers.dev/llms.txt
+#   https://panwatch-h5.workers.dev/llms-full.txt

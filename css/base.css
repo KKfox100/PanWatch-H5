@@ -266,3 +266,139 @@ h1, h2, h3, h4, p { margin: 0; }
   font-size: var(--fs-sm);
 }
 .empty svg { width: 34px; height: 34px; margin-bottom: 10px; opacity: 0.55; }
+
+/* ==========================================================================
+   无 JavaScript 回退内容（<noscript> 里的 .nojs）
+   --------------------------------------------------------------------------
+   这段样式只在脚本关闭时才会被用到 —— 脚本开启时 <noscript> 的子节点
+   会被当成一个纯文本节点，不渲染，所以这些规则是空转的，不影响应用。
+
+   内容本身是给搜索引擎和语言模型抓取器看的，所以排版优先保证
+   「可读、语义清楚、行宽舒服」，而不是紧凑。沿用同一套令牌，
+   所以深色模式下也跟着翻转。
+   ========================================================================== */
+
+.nojs {
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-5) var(--sp-12);
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  line-height: var(--lh-relaxed);
+}
+
+.nojs__head { margin-bottom: var(--sp-8); }
+
+.nojs__badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  background: var(--warn-soft);
+  color: var(--warn-on-soft);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide);
+  margin-bottom: var(--sp-4);
+}
+
+.nojs h1 {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-tight);
+  color: var(--ink);
+  letter-spacing: var(--ls-tight);
+  margin-bottom: var(--sp-3);
+}
+
+.nojs__lead {
+  font-size: var(--fs-lg);
+  color: var(--ink);
+  margin-bottom: var(--sp-4);
+}
+
+.nojs__notice {
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--line-emphasis);
+  background: var(--surface-sunken);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.nojs h2 {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  margin: var(--sp-10) 0 var(--sp-3);
+}
+
+.nojs h2:first-of-type { margin-top: 0; }
+
+.nojs p { margin-bottom: var(--sp-3); }
+
+.nojs ul { margin: 0 0 var(--sp-4); padding-left: 1.35em; }
+.nojs li { margin-bottom: var(--sp-2); }
+.nojs li::marker { color: var(--ink-3); }
+
+.nojs strong { color: var(--ink); font-weight: var(--fw-bold); }
+
+.nojs a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+
+.nojs dl { margin: 0 0 var(--sp-4); }
+.nojs dt {
+  font-weight: var(--fw-bold);
+  color: var(--ink);
+  margin-top: var(--sp-4);
+}
+.nojs dd { margin: var(--sp-1) 0 0; padding-left: var(--sp-4); color: var(--ink-2); }
+
+.nojs__foot {
+  margin-top: var(--sp-10);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.nojs__foot p { margin: 0; }
+
+/* ==========================================================================
+   设置页 · 关于本项目（散文 + 常见问题）
+   --------------------------------------------------------------------------
+   这段内容是给「会执行 JS 的读者」看的 —— 也就是真实用户，以及能渲染
+   页面的抓取器。<noscript> 里的版本覆盖的是不执行 JS 的那一类，两者互补，
+   谁都不是谁的后备。
+
+   它同时承担一个 SEO 职责：index.html 里 FAQPage 结构化数据要求标记的
+   内容对读者可见。下面的问答与 JSON-LD、<noscript> 三处逐字一致，
+   scripts/check.mjs 会逐条核对，改一处忘改另一处会直接报错。
+   ========================================================================== */
+
+.about-prose {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+}
+.about-prose > p { margin: 0 0 10px; }
+.about-prose > p:last-child { margin-bottom: 0; }
+.about-prose strong { color: var(--ink); font-weight: var(--fw-bold); }
+.about-prose a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.about-faq { margin: 0; }
+.about-faq dt {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--ink);
+  margin-top: 12px;
+}
+.about-faq dt:first-of-type { margin-top: 0; }
+.about-faq dd {
+  margin: 4px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--ink-2);
+}

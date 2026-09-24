@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const errors = [];
 const warnings = [];
+const notes = [];
 
 const rel = (p) => path.relative(ROOT, p).split(path.sep).join('/');
 
@@ -161,10 +162,69 @@ for (const m of appSrc.matchAll(/data-([a-z][a-z0-9-]*)/g)) {
   }
 }
 
+/* ---- 8. FAQ 结构化数据 ↔ 可见内容，三处逐字一致 ----
+   结构化数据标记的内容必须对读者可见。这个站点把同一组问答写了三遍：
+
+     index.html 的 JSON-LD        —— 给机器
+     index.html 的 <noscript>     —— 给不执行 JS 的读者与抓取器
+     设置页的 .about-faq          —— 给真实用户与能渲染页面的抓取器
+
+   三处任意一处漂移，就变成「标记了读者看不到的内容」。放在这里做静态
+   核对，比在浏览器里跑一遍更早发现问题、也更快。
+
+   前提：问答的正文必须各写在一行内 —— 跨行断开会插入空格，核对时对不上。 */
+{
+  const ldBodies = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  const faqQs = [];
+  for (const m of ldBodies) {
+    let data;
+    try {
+      data = JSON.parse(m[1]);
+    } catch (e) {
+      errors.push('index.html 里的 JSON-LD 无法解析：' + e.message);
+      continue;
+    }
+    for (const node of data['@graph'] || [data]) {
+      if (node['@type'] === 'FAQPage') faqQs.push(...(node.mainEntity || []));
+    }
+  }
+
+  if (!faqQs.length) {
+    warnings.push('index.html 里没找到 FAQPage 节点，跳过 FAQ 一致性核对');
+  } else {
+    // 用 lastIndexOf：<noscript> 这个字符串在它前面的注释里也出现过，
+    // 直接 match 会从注释里的那处开始截，虽然结果仍含正文但很脆弱。
+    const nojsStart = html.lastIndexOf('<noscript>');
+    const nojsEnd = html.indexOf('</noscript>', nojsStart);
+    const places = [
+      ['index.html <noscript>', html.slice(nojsStart, nojsEnd)],
+      ['js/views/settings.js', fs.readFileSync(path.join(ROOT, 'js', 'views', 'settings.js'), 'utf8')],
+    ].map(([name, src]) => [name, src.replace(/\s+/g, ' ')]);
+
+    for (const q of faqQs) {
+      const ask = (q.name || '').replace(/\s+/g, ' ').trim();
+      const ans = ((q.acceptedAnswer && q.acceptedAnswer.text) || '').replace(/\s+/g, ' ').trim();
+      if (!ask || !ans) {
+        errors.push('FAQ 条目缺少 name 或 acceptedAnswer.text');
+        continue;
+      }
+      for (const [where, src] of places) {
+        if (!src.includes(ask)) errors.push(`FAQ 问题在 ${where} 里找不到：${ask}`);
+        if (!src.includes(ans)) errors.push(`FAQ 答案在 ${where} 里找不到：${ans}`);
+      }
+    }
+    notes.push(`FAQ 一致性：${faqQs.length} 组问答在 JSON-LD / <noscript> / 设置页三处一致`);
+  }
+}
+
 /* ---- 输出 ---- */
 const bar = '─'.repeat(58);
 console.log(`\n${bar}\n  盯盘侠 H5 · 静态自检\n${bar}`);
 console.log(`  扫描 ${allFiles.length} 个文件，其中 JS ${jsFiles.length} 个`);
+if (notes.length) {
+  console.log('');
+  notes.forEach((n) => console.log(`  · ${n}`));
+}
 
 if (warnings.length) {
   console.log(`\n  ⚠ 警告 ${warnings.length} 条`);

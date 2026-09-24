@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  盯盘侠 PanWatch H5 · 站点地图
+  ==========================================================================
+  只有两个 URL，因为这个应用是**哈希路由**的：
+  #/portfolio、#/opportunities 这些都不是独立 URL（片段标识符不参与
+  路由，浏览器不会为它发请求），所以它们不该出现在 sitemap 里 ——
+  写进去只会制造一批内容重复的条目。
+
+  真正可索引的只有：
+    /                      应用本体
+    /design/index.html     设计规范页（独立文档，内容唯一）
+
+  ⚠️ <lastmod> 需要和实际发版时间一致。写一个不准确的日期比不写更糟：
+     Google 会因此降低对整个 sitemap 的信任。发版时顺手改一下。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <url>
+    <loc>https://panwatch-h5.workers.dev/</loc>
+    <lastmod>2026-09-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://panwatch-h5.workers.dev/public/og.png</image:loc>
+      <image:title>盯盘侠 PanWatch H5 界面预览</image:title>
+      <image:caption>莫兰迪灰调配色的移动端股票盯盘界面：持仓总览与净值曲线</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://panwatch-h5.workers.dev/design/index.html</loc>
+    <lastmod>2026-09-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+</urlset>

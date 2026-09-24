@@ -13,7 +13,17 @@
   "assets": {
     "directory": ".",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application"
+
+    // 原本这里是 "single-page-application"，已改掉。
+    //
+    // 那个值会对任何未匹配的路径返回 200 + index.html。对**路径路由**的
+    // SPA 这是必需的；但本项目是**哈希路由** —— 真实 URL 只有 `/` 与
+    // `/design/index.html` 两个，`#/portfolio` 里的片段根本不发请求。
+    //
+    // 所以 SPA 回退在这里只会做一件事：把任意乱敲的地址（/abc、/x/y/z）
+    // 全部变成「返回 200、内容与应用首页完全相同」的页面。搜索引擎会
+    // 把它们当有效页面收录，形成无限个内容重复的软 404。
+    "not_found_handling": "404-page"
   },
 
   "observability": { "enabled": true },

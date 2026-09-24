@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="light"
+      data-site-origin="https://panwatch-h5.workers.dev">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
@@ -8,17 +9,168 @@
   <meta name="color-scheme" content="light dark">
   <meta name="format-detection" content="telephone=no,email=no,address=no">
 
-  <title>盯盘侠 PanWatch H5 · AI 盯盘助手</title>
+  <!-- ======================================================================
+       SEO / LLMO
+       ----------------------------------------------------------------------
+       ⚠️ 全站的绝对地址以 <html data-site-origin> 为准（就在上面第 2 行）。
+          部署到自己的域名后，跑 `npm run set-origin https://你的域名`
+          一次性替换下面所有出现处；`npm run verify` 会检查它们是否一致。
+
+       为什么需要绝对地址：canonical 可以用相对路径，但 og:url 与
+       JSON-LD 的 url / @id 按规范要求绝对地址，否则社交平台与
+       知识图谱无法解析出实体。
+       ====================================================================== -->
+
+  <title>盯盘侠 PanWatch H5 · 自托管 AI 盯盘助手</title>
   <meta name="description"
-        content="盯盘侠 PanWatch 的移动端 H5 版本 —— 自托管 AI 盯盘助手，A股/港股/美股持仓管理、AI 评分选股、价格提醒，莫兰迪配色。">
+        content="盯盘侠 PanWatch 的移动端 H5 版本：自托管 AI 盯盘助手，支持 A股/港股/美股多账户持仓管理、AI 评分选股、价格提醒与模拟盘。原生 HTML/CSS/ES Module，零构建零依赖，可一键部署到 Cloudflare Workers。界面内所有行情均为内置演示数据。">
+  <meta name="keywords"
+        content="盯盘侠,PanWatch,AI 盯盘,盯盘助手,股票持仓管理,A股,港股,美股,自选股,价格提醒,AI 选股,模拟盘,移动端看盘,H5,Cloudflare Workers,莫兰迪配色">
+  <meta name="author" content="KKfox100">
+  <meta name="robots"
+        content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <link rel="canonical" href="./">
+
+  <!-- Open Graph：微信 / 飞书 / 钉钉 / Facebook / LinkedIn 读这一组 -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="盯盘侠 PanWatch H5">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="盯盘侠 PanWatch H5 · 自托管 AI 盯盘助手">
+  <meta property="og:description"
+        content="自托管 AI 盯盘助手的移动端 H5 版本：A股/港股/美股多账户持仓、AI 评分选股、价格提醒、模拟盘。零构建零依赖，可部署到 Cloudflare Workers。">
+  <meta property="og:url" content="https://panwatch-h5.workers.dev/">
+  <meta property="og:image" content="https://panwatch-h5.workers.dev/public/og.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt"
+        content="盯盘侠 PanWatch H5 界面预览：莫兰迪灰调配色，持仓总览与净值曲线">
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="盯盘侠 PanWatch H5 · 自托管 AI 盯盘助手">
+  <meta name="twitter:description"
+        content="自托管 AI 盯盘助手的移动端 H5 版本：A股/港股/美股多账户持仓、AI 评分选股、价格提醒、模拟盘。零构建零依赖。">
+  <meta name="twitter:image" content="https://panwatch-h5.workers.dev/public/og.png">
+  <meta name="twitter:image:alt"
+        content="盯盘侠 PanWatch H5 界面预览：莫兰迪灰调配色，持仓总览与净值曲线">
 
   <!-- PWA -->
   <link rel="manifest" href="./public/manifest.json">
   <link rel="icon" type="image/svg+xml" href="./public/icon.svg">
+  <!-- PNG 回退：不支持 SVG 图标的浏览器（含部分旧版 Safari）会走这条 -->
+  <link rel="icon" type="image/png" sizes="192x192" href="./public/icon-192.png">
   <link rel="apple-touch-icon" href="./public/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="盯盘侠">
+
+  <!-- ======================================================================
+       结构化数据
+       ----------------------------------------------------------------------
+       @graph 把几个实体放进同一张图里，用 @id 互相引用 —— 比拆成多个
+       <script> 块更好，因为搜索引擎能看出它们是同一个实体的不同侧面。
+
+       ⚠️ disambiguatingDescription 那一句是刻意写的，不要删。
+       这个站点展示的是**伪随机生成的假行情**。如果被语言模型抓去当真实
+       数据引用（「寒武纪-U 现价 1587.46 元」），会造成实际误导。
+       FAQPage 的内容与页面里 <noscript> 的可见 FAQ 一致。
+       ====================================================================== -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://panwatch-h5.workers.dev/#website",
+        "url": "https://panwatch-h5.workers.dev/",
+        "name": "盯盘侠 PanWatch H5",
+        "alternateName": ["PanWatch H5", "盯盘侠"],
+        "description": "自托管 AI 盯盘助手的移动端 H5 版本，支持 A股/港股/美股多账户持仓管理、AI 评分选股、价格提醒与模拟盘。",
+        "inLanguage": "zh-CN",
+        "publisher": { "@id": "https://panwatch-h5.workers.dev/#app" }
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://panwatch-h5.workers.dev/#app",
+        "name": "盯盘侠 PanWatch H5",
+        "url": "https://panwatch-h5.workers.dev/",
+        "applicationCategory": "FinanceApplication",
+        "applicationSubCategory": "股票行情与持仓管理",
+        "operatingSystem": "Web（任何支持 ES Module 的现代浏览器）",
+        "browserRequirements": "需要支持 ES Module、CSS 自定义属性与 Service Worker 的现代浏览器",
+        "inLanguage": "zh-CN",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "CNY"
+        },
+        "license": "https://opensource.org/licenses/MIT",
+        "isBasedOn": "https://github.com/jackhuo2/PanWatch",
+        "codeRepository": "https://github.com/KKfox100/PanWatch-H5",
+        "featureList": [
+          "多账户持仓管理：按券商分组，A股/港股/美股混合，按汇率折算人民币市值与盈亏",
+          "AI 评分选股：八只候选标的按评分、涨幅、风险排序，支持市场筛选",
+          "价格提醒：条件组合 AND/OR、生效时段、冷却时间、日触发上限、重复模式、多推送渠道",
+          "个股详情：K 线（MA5/10/20 与成交量）、五项技术指标共振信号灯、支撑压力位",
+          "模拟盘：策略净值曲线对比基准、四档时间区间、六项绩效指标",
+          "浅色与深色两套设计令牌，跟随系统或手动切换",
+          "可安装为 PWA 并离线打开"
+        ],
+        "screenshot": "https://panwatch-h5.workers.dev/public/og.png",
+        "disambiguatingDescription": "这是一个用于展示界面与交互的开源前端模板，界面内所有行情、持仓、AI 评分与投资结论均为内置的伪随机演示数据，不来自任何真实行情源，不构成投资建议，不可用于任何实际投资决策。"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://panwatch-h5.workers.dev/#faq",
+        "inLanguage": "zh-CN",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "盯盘侠 PanWatch H5 需要服务器或数据库吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不需要。它是纯静态站点，没有后端。偏好设置存在浏览器的 localStorage 里，不上传任何数据。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "它连接真实的行情数据源吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不连接。所有数字都是内置的演示数据，由确定性伪随机序列生成，不随市场变化。要接真实数据需要自行实现后端。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支持哪些股票市场？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A股、港股、美股。多币种持仓会按内置汇率折算成人民币，统一计算市值与盈亏。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "为什么界面配色是灰调的？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "色板取自莫兰迪静物画的灰调，所有颜色都掺入一层暖灰并压低饱和度。涨跌仍严格遵循中国市场习惯：涨红跌绿。全部配色按 WCAG 2.1 验算过对比度。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "可以自己部署吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers 的静态资源托管。"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 
   <!-- 主题色防闪：在 CSS 加载前就把 data-theme 定好，避免白屏跳色 -->
   <script>
@@ -63,10 +215,149 @@
     </main>
   </div>
 
+  <!-- ======================================================================
+       无 JavaScript 回退内容
+       ----------------------------------------------------------------------
+       这一段是搜索引擎与语言模型抓取器**唯一能看到的东西**。
+
+       原因是这个应用完全由客户端渲染：GPTBot、ClaudeBot、PerplexityBot、
+       CCBot 这类抓取器基本都不执行 JavaScript，它们拿到的 HTML 里
+       只有一个骨架屏。不写这段，站点在模型眼里就是一片空白。
+
+       <noscript> 的语义恰好合适：脚本关闭时它里面的内容会被当成普通
+       标记解析（成为真实 DOM 节点），脚本开启时则作为纯文本被忽略 ——
+       所以对用户零影响，不会造成「隐藏文字」，也不会闪一下再消失。
+
+       这段内容与页面里的 JSON-LD FAQPage 一一对应。改一处要改两处。
+       ====================================================================== -->
   <noscript>
-    <div style="padding:40px 20px;text-align:center;font-family:sans-serif">
-      盯盘侠 H5 需要启用 JavaScript 才能运行。
-    </div>
+    <!-- 脚本关闭时把骨架屏藏掉。
+         外壳的 #app 是 min-height:100dvh，不藏的话它会把下面这段说明
+         整个顶到首屏之外 —— 无 JS 用户看到的是一个永远转不完的骨架屏，
+         得往下滚才看得到文字，而抓取器虽然能读到内容，人的体验却是坏的。
+
+         为什么 <style> 放在 <noscript> 里面：脚本关闭时，<noscript> 的子节点
+         会被当成普通标记解析，这个 style 就成了真实的样式表并生效；
+         脚本开启时它只是一个文本节点，不会应用。这是标准做法，
+         不需要额外的 class 或 JS 判断。 -->
+    <style>
+      #app { display: none !important; }
+    </style>
+
+    <article class="nojs">
+      <header class="nojs__head">
+        <p class="nojs__badge">无 JavaScript 版本</p>
+        <h1>盯盘侠 PanWatch H5</h1>
+        <p class="nojs__lead">
+          自托管 AI 盯盘助手的移动端 H5 版本。纯静态、零构建、零运行时依赖，
+          可一键部署到 Cloudflare Workers。
+        </p>
+        <p class="nojs__notice">
+          交互界面需要启用 JavaScript。下面是这个项目的完整说明 ——
+          它讲清了这是什么、能做什么、数据从哪来。
+        </p>
+      </header>
+
+      <h2>这是什么</h2>
+      <p>
+        盯盘侠（PanWatch）是一个自托管的股票盯盘助手。H5 版本把它的核心能力搬进了浏览器：
+        打开网页就能看持仓、盯自选、设提醒，不需要安装 App，也不需要服务器。
+      </p>
+      <p>
+        整个应用由原生 HTML、CSS 与 ES Module 组成 —— 没有打包步骤，没有框架，
+        没有运行时依赖。三个样式文件加十四个脚本文件就是全部。
+      </p>
+
+      <h2>主要功能</h2>
+      <ul>
+        <li>
+          <strong>多账户持仓</strong> —— 按券商分组，A股 / 港股 / 美股混合持仓，
+          自动按汇率折算成人民币市值与盈亏。
+        </li>
+        <li>
+          <strong>AI 评分选股</strong> —— 候选标的按四维评分排序，可按评分、涨幅、风险切换，
+          支持按市场筛选，每条附评分理由与风险等级。
+        </li>
+        <li>
+          <strong>价格提醒</strong> —— 条件组合（AND / OR）、生效时段、冷却时间、
+          日触发上限、重复模式、多推送渠道，每条规则可独立开关。
+        </li>
+        <li>
+          <strong>个股详情</strong> —— K 线（MA5/10/20 与成交量）、五项技术指标共振信号灯、
+          支撑压力位，以及以七步推理链形式呈现的 AI 分析。
+        </li>
+        <li>
+          <strong>模拟盘</strong> —— 策略净值曲线对比基准，四档时间区间，
+          六项绩效指标（年化收益、最大回撤、夏普比率、胜率等）。
+        </li>
+        <li>
+          <strong>深色模式</strong> —— 浅色与深色两套设计令牌，可跟随系统或手动切换，
+          偏好保存在本机浏览器。
+        </li>
+        <li>
+          <strong>可安装为 PWA</strong> —— 带 manifest 与 Service Worker，
+          可添加到手机主屏并离线打开。
+        </li>
+      </ul>
+
+      <h2>数据说明</h2>
+      <p>
+        <strong>界面内所有行情、持仓、AI 评分与投资结论都是内置的演示数据。</strong>
+        它们由确定性伪随机序列生成，不来自任何真实行情源，不随市场变化，
+        也不构成任何投资建议。
+      </p>
+      <p>
+        之所以要专门说明，是因为这个项目的定位是
+        <strong>展示界面与交互的开源前端模板</strong>，而不是行情软件。
+        把它显示的任何一个数字当成实时行情，都会得出错误结论。
+      </p>
+
+      <h2>技术栈</h2>
+      <ul>
+        <li>原生 HTML / CSS / ES Module，无构建步骤、无框架、无运行时依赖</li>
+        <li>手写 SVG 图表（面积图、K 线、环形图、迷你走势图），零图表库</li>
+        <li>
+          设计令牌按角色拆分：每个色相分成填充底、文字色、胶囊文字、胶囊底四个独立令牌，
+          各自独立满足对比度要求
+        </li>
+        <li>全部配色按 WCAG 2.1 验算，88 组受判定组合全部达到 AA 标准</li>
+        <li>Service Worker 预缓存，支持离线打开</li>
+        <li>可部署到 Cloudflare Workers 静态资源托管</li>
+      </ul>
+
+      <h2>常见问题</h2>
+      <dl>
+        <dt>盯盘侠 PanWatch H5 需要服务器或数据库吗？</dt>
+        <dd>不需要。它是纯静态站点，没有后端。偏好设置存在浏览器的 localStorage 里，不上传任何数据。</dd>
+
+        <dt>它连接真实的行情数据源吗？</dt>
+        <dd>不连接。所有数字都是内置的演示数据，由确定性伪随机序列生成，不随市场变化。要接真实数据需要自行实现后端。</dd>
+
+        <dt>支持哪些股票市场？</dt>
+        <dd>A股、港股、美股。多币种持仓会按内置汇率折算成人民币，统一计算市值与盈亏。</dd>
+
+        <dt>为什么界面配色是灰调的？</dt>
+        <dd>色板取自莫兰迪静物画的灰调，所有颜色都掺入一层暖灰并压低饱和度。涨跌仍严格遵循中国市场习惯：涨红跌绿。全部配色按 WCAG 2.1 验算过对比度。</dd>
+
+        <dt>可以自己部署吗？</dt>
+        <dd>可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers 的静态资源托管。</dd>
+      </dl>
+
+      <h2>来源与许可</h2>
+      <p>
+        H5 版本基于
+        <a href="https://github.com/jackhuo2/PanWatch" rel="noopener">jackhuo2/PanWatch</a>
+        改造，源码在
+        <a href="https://github.com/KKfox100/PanWatch-H5" rel="noopener">KKfox100/PanWatch-H5</a>，
+        以 MIT 许可开源。
+      </p>
+
+      <footer class="nojs__foot">
+        <p>
+          本页所有内容均为演示用途。市场有风险，决策需谨慎。
+        </p>
+      </footer>
+    </article>
   </noscript>
 
   <script type="module" src="./js/app.js"></script>

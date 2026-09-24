@@ -20,20 +20,19 @@
     "verify:deploy": "wrangler deploy --dry-run",
     "preview": "node scripts/serve.mjs 5183",
     "icons": "python scripts/gen-icons.py",
+    "og": "node scripts/gen-og.cjs",
+    "set-origin": "node scripts/set-origin.cjs",
     "check": "node scripts/check.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs --md --json",
     "e2e": "node scripts/e2e.cjs",
     "e2e:design": "node scripts/e2e-design.cjs",
-    "verify": "node scripts/check.mjs && node scripts/audit-contrast.mjs && node scripts/e2e.cjs && node scripts/e2e-design.cjs"
+    "e2e:seo": "node scripts/e2e-seo.cjs",
+    "verify": "node scripts/check.mjs && node scripts/audit-contrast.mjs && node scripts/e2e-seo.cjs && node scripts/e2e.cjs && node scripts/e2e-design.cjs"
   },
   "devDependencies": {
     "wrangler": "^4.137.0"
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@cloudflare/workerd-windows-64": "^1.20260924.1",
-    "@esbuild/win32-x64": "^0.28.2"
   }
 }
