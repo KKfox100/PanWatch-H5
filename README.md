@@ -1,9 +1,20 @@
 # 盯盘侠 PanWatch · H5
 
-> 移动端 H5 版本 · **莫兰迪配色** · 纯静态 · 可一键部署到 Cloudflare Workers
+> 移动端 H5 版本 · **莫兰迪配色** · 零构建零依赖 · 实时行情 + SQLite 持久化（可选后端）
 
 基于 [jackhuo2/PanWatch](https://github.com/jackhuo2/PanWatch)（自托管 AI 盯盘助手）改造的**独立移动端 H5 应用**。
-原项目是 `FastAPI 后端 + React 前端` 的重型自托管方案；本版把界面重做成一套**零依赖、零构建、可直接上边缘节点**的移动优先 H5，开箱即是完整可交互的界面。
+原项目是 `FastAPI 后端 + React 前端` 的重型自托管方案；本版把界面重做成一套**零依赖、零构建、可直接上边缘节点**的移动优先 H5。
+
+**两种用法，同一份前端代码：**
+
+| 模式 | 怎么跑 | 数据 |
+|---|---|---|
+| **纯静态**（默认） | 只部署静态资源 | 全部为内置演示数据，不联网 |
+| **接后端** | 再加上随项目附带的 Cloudflare Worker + D1 | 行情来自腾讯财经，持仓/自选/提醒持久化在 D1 |
+
+没探测到后端时自动回落到纯静态模式，行为与接后端前完全一致。
+**顶栏始终标出当前数据是「实时」还是「演示」** —— 这两种数据长得一模一样，
+不标出来就等于在误导。
 
 ---
 
@@ -11,18 +22,19 @@
 
 | | 原项目 PanWatch | 本项目 PanWatch H5 |
 |---|---|---|
-| 形态 | 自托管全栈应用 | 纯静态 H5（无后端） |
-| 技术栈 | Python FastAPI + React 18 + Tailwind + shadcn/ui | 原生 HTML / CSS / ES Module |
+| 形态 | 自托管全栈应用 | 纯静态 H5，或 H5 + Cloudflare Worker/D1 |
+| 技术栈 | Python FastAPI + React 18 + Tailwind + shadcn/ui | 原生 HTML / CSS / ES Module（后端为纯 JS Worker） |
 | 构建 | `pnpm build`，产物需 Node 运行时 | **无需构建**，源文件即产物 |
-| 部署 | Docker（需 Python 运行时、Playwright、数据库卷） | Cloudflare Workers 静态资源 / 任意静态托管 |
-| 数据 | 实时行情 + SQLite 持久化 | **内置演示数据**（本地计算，不联网） |
+| 部署 | Docker（需 Python 运行时、Playwright、数据库卷） | Cloudflare Workers（静态资源，或静态资源 + Worker + D1） |
+| 数据 | 实时行情 + SQLite 持久化 | 默认内置演示数据；接后端后为腾讯财经实时行情 + D1（托管的 SQLite）持久化 |
 | 配色 | 深色 + 蓝色主调 | **莫兰迪灰调**（浅色为主，附暗色变体） |
-| 体积 | 镜像数百 MB | 全站约 90 KB |
+| 体积 | 镜像数百 MB | 纯静态约 90 KB；加后端多约 20 KB Worker 代码 |
 
 **为什么不能直接把原项目部署到 Workers**：Workers 只跑 JavaScript/WASM。
 原后端依赖 `SQLAlchemy` / `APScheduler` / `Playwright` / Python 运行时，
-这些在 Workers 上都跑不起来。所以本项目的做法是——
-**前端独立成 H5，后端可选**（见「接入自建后端」）。
+这些在 Workers 上都跑不起来。所以本项目**重新实现了后端**：一个纯 JS 的
+Worker（4 个文件）+ D1，只做「代理行情 + 存数据」这两件事，
+不试图复刻原项目的能力（见「实时行情与持久化」）。
 
 ---
 
@@ -159,12 +171,23 @@ node scripts/e2e-design.cjs     # 设计规范页端到端（同样需先起 ser
 node scripts/e2e-seo.cjs        # SEO / LLMO 端到端（同样需先起 serve.mjs）
 
 npm run verify                  # 上面五项一次跑完
+
+# 实时路径（需要后端在跑）
+npx wrangler dev --port 8791 --persist-to "C:/Temp/panwatch-state" &
+node scripts/e2e-live.cjs       # 实时行情 + D1 持久化端到端
+node --no-warnings scripts/inspect-d1.cjs   # 直接读磁盘 SQLite 验证落盘
 ```
 
 `e2e.cjs` 用系统已装的 Chrome 通过 CDP 驱动，**不装 Playwright**，
 覆盖 12 组共 97 项断言：首屏、莫兰迪令牌、涨红跌绿、七个路由、
 数据自洽、图表绘制、弹层动态增删、主题切换与对比度、持久化、
 控制台零报错、桌面端居中布局，并输出移动端与桌面端截图。
+
+`e2e-live.cjs` 覆盖 10 组共 54 项断言，跑在真实 Worker + 真实 D1 上。
+核心断言是这一条组合：**DOM 上的价格 = 接口返回的价格，且 ≠ 内置演示价**。
+少了后半句，一个「接口全挂但界面照常显示演示数据」的实现也能通过测试。
+它还会分别验证「无 token 写入被拒且服务端数据未变」与
+「带正确 token 写入后 D1 里确实变了」。
 
 `e2e-seo.cjs` 覆盖 9 组共 99 项断言。最值得注意的是第 8 组：它用 CDP 的
 `Emulation.setScriptExecutionDisabled` **真的把 JavaScript 关掉**再导航，
@@ -272,26 +295,61 @@ npm run deploy           # → https://panwatch-h5.<你的子域>.workers.dev
 
 ---
 
-## 接入自建后端（可选）
+## 实时行情与持久化（可选后端）
 
-本版默认走内置演示数据。要接真实行情与 AI 分析，需要另外部署原项目的 Python 后端：
+本项目自带一个 Cloudflare Worker + D1 后端，**不需要另外找服务器**：
+静态资源与 API 属于同一次部署。
+
+### 它做什么
+
+| 端点 | 鉴权 | 说明 |
+|---|---|---|
+| `GET /api/health` | 公开 | 探测用。前端靠它判断有没有后端 |
+| `GET /api/quotes?symbols=a,b` | 公开 | 批量行情，D1 缓存 15 秒 TTL，过期才回源 |
+| `GET /api/kline?symbol=x&days=60` | 公开 | 日 K 线，缓存 300 秒 |
+| `GET /api/state` | 公开 | 一次性取回持仓/自选/提醒/设置，省 4 个往返 |
+| `PUT /api/portfolio\|watchlist\|alerts\|settings` | **需 token** | 写入，整体替换 |
+
+- **行情源**：腾讯财经（`qt.gtimg.cn`），免费无 key，A股/港股/美股一次请求全拿
+- **为什么必须有一个 Worker**：行情接口不给跨域；而且写入令牌绝不能出现在前端代码里。
+  这两件事都只能在服务端做，D1 也就顺理成章
+- **鉴权模型**：读公开、写要 token（`WRITE_TOKEN` 环境变量）。
+  这是「单租户、无登录」方案的固有代价 —— 前端令牌存在 localStorage 里，
+  能打开页面的人就能读到它。**要多人隔离就得自己加登录**
+- **降级**：上游挂了会**返回过期缓存**并在每条上标 `ageMs`，而不是报错。
+  展示一分钟前的价格，比展示一个错误页好得多
+
+### 跑起来
 
 ```bash
-docker run -d --name panwatch -p 8000:8000 \
-  -v panwatch_data:/app/data sunxiao0721/panwatch:latest
+# 1) 建库（把输出的 database_id 填进 wrangler.jsonc）
+npx wrangler d1 create panwatch-db
+
+# 2) 本地开发
+npx wrangler dev --persist-to "C:/Temp/panwatch-state"
+
+# 3) 设写入令牌（生产）
+npx wrangler secret put WRITE_TOKEN
+
+# 4) 部署
+npx wrangler deploy
 ```
 
-然后在 H5 的「设置 → 后端 API 地址」填入该地址。
+⚠️ **本地开发一定要加 `--persist-to`**。默认的 `.wrangler/state` 在项目根目录下，
+而 `assets.directory: "."` 让 `wrangler dev` 的文件监听覆盖整个项目根 ——
+状态文件被持续写入会触发自激重载循环（每秒重载几十次），表现为**所有请求超时**，
+而日志里只有一行行 `Reloading local server`。`.assetsignore` 只管上传，不管 dev 监听。
+把状态目录挪出项目根就好了。
 
-**两个必须注意的点：**
+### 端到端验证
 
-1. **CORS**。浏览器直连自建后端会跨域，需在后端放开来源，或在 Workers 上加一层代理路由。
-2. **Workers 跑不了这个后端**。它是 Python 应用，得放在支持 Python 的服务器上
-   （VPS / 群晖 / 树莓派 / 任意容器平台）。H5 与后端是分离部署的。
+```bash
+node scripts/e2e-live.cjs        # 需要先起 wrangler dev
+node scripts/inspect-d1.cjs      # 直接读磁盘上的 SQLite 文件
+```
 
-数据适配层集中在 `js/data.js`：把 `RAW_ACCOUNTS` / `RAW_WATCHLIST` 这些常量
-换成 `fetch(apiBase + '/api/...')` 的返回值即可，视图层不需要改动
-（视图只消费 `enrich()` 之后的统一结构）。
+`e2e-live.cjs` 会断言「DOM 上的价格 = 接口返回的价格 **且 ≠ 内置演示价**」——
+少了后半句，一个「接口全挂但界面照常显示演示数据」的实现也能通过测试。
 
 ---
 
@@ -303,7 +361,14 @@ docker run -d --name panwatch -p 8000:8000 \
 ├── sw.js                   Service Worker（必须在根目录才能拿到全站作用域）
 ├── _headers                Cloudflare 响应头规则（不对外提供，只被解析）
 ├── .assetsignore           部署排除清单（不是 wrangler 的 exclude 字段）
-├── wrangler.jsonc          Workers 配置
+├── wrangler.jsonc          Workers 配置（静态资源 + /api 交给 Worker）
+├── worker/                 可选后端：跑在 Cloudflare Workers 上
+│   ├── index.js            入口：/api/* 交给 API，其余转静态资源
+│   ├── api.js              端点与写入鉴权（定长比较，避免时间侧信道）
+│   ├── db.js               D1 数据访问层（运行时建表，首访灌种子）
+│   └── quotes.js           腾讯财经适配器（单位归一 / 停牌挡掉 / 超时控制）
+├── migrations/
+│   └── 0001_init.sql       表结构定义
 ├── design/                 交互式设计规范（独立页面，不属于应用本体）
 │   ├── index.html          11 个章节：概览 / 用户与 IA / 色彩 / 字体 / 间距 /
 │   │                       阴影 / 图标 / 动效 / 组件 / 页面 / 可访问性
@@ -316,7 +381,10 @@ docker run -d --name panwatch -p 8000:8000 \
 ├── js/
 │   ├── app.js              路由、外壳、事件委托、弹层与 Toast
 │   ├── store.js            状态与 localStorage 持久化
-│   ├── data.js             演示数据 + 派生计算（所有数字在这里自洽）
+│   ├── data.js             数据 + 派生计算；演示数据是兜底，行情是覆盖层
+│   ├── live.js             实时层编排：何时拉、失败怎么办、拉回来给谁
+│   ├── api.js              后端 API 客户端（同源优先，12 秒超时）
+│   ├── symbols.js          代码 ↔ 上游 symbol 映射（前端与 Worker 共用）
 │   ├── utils.js            格式化 / DOM / 伪随机序列
 │   ├── icons.js            线性图标集（50 个）
 │   ├── charts.js           手写 SVG 图表
@@ -328,8 +396,11 @@ docker run -d --name panwatch -p 8000:8000 \
     ├── check.mjs           静态自检
     ├── solve-tokens.mjs    OKLCH 反解令牌色值（改配色时用）
     ├── audit-contrast.mjs  WCAG 对比度审计 + 令牌泄漏扫描
-    ├── e2e.cjs             应用端到端
+    ├── e2e.cjs             应用端到端（无后端降级路径）
     ├── e2e-design.cjs      设计规范页端到端
+    ├── e2e-seo.cjs         SEO / LLMO 端到端
+    ├── e2e-live.cjs        实时行情 + D1 持久化端到端
+    ├── inspect-d1.cjs      直接读磁盘 SQLite 文件
     ├── cdp-client.cjs      CDP 客户端
     └── gen-icons.py        生成 PWA 图标
 ```
@@ -338,8 +409,16 @@ docker run -d --name panwatch -p 8000:8000 \
 
 ## 免责声明
 
-界面内所有行情、持仓、评分、AI 分析结论**均为内置演示数据**，
-不来自任何真实数据源，**不构成任何投资建议**。市场有风险，决策需谨慎。
+**没有后端时**：界面内所有行情、持仓、评分与 AI 分析结论均为内置演示数据，
+由确定性伪随机序列生成，不来自任何真实数据源。
+
+**接上后端后**：现价、昨收、开高低、成交量、成交额与日 K 线来自腾讯财经的
+公开接口；持仓、自选、提醒、设置持久化在 D1。但 AI 评分、评分理由、
+投资建议、Agent 推理链、模拟盘绩效、市场快讯与盘前分析，
+以及首页「账户净值走势」曲线，**仍然是内置的固定演示内容**。
+
+无论哪种模式，**都不构成任何投资建议**。行情来自第三方公开接口，
+可能有延迟或错误。市场有风险，决策需谨慎。
 
 ## License
 

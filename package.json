@@ -1,8 +1,8 @@
 {
   "name": "panwatch-h5",
-  "version": "0.1.0-h5",
+  "version": "0.2.0-h5",
   "private": true,
-  "description": "盯盘侠 PanWatch 的移动端 H5 版本 · 莫兰迪配色 · 可部署到 Cloudflare Workers",
+  "description": "盯盘侠 PanWatch 的移动端 H5 版本 · 莫兰迪配色 · 实时行情 + SQLite 持久化（可选后端）· 可部署到 Cloudflare Workers",
   "keywords": [
     "panwatch",
     "h5",
@@ -27,6 +27,7 @@
     "e2e": "node scripts/e2e.cjs",
     "e2e:design": "node scripts/e2e-design.cjs",
     "e2e:seo": "node scripts/e2e-seo.cjs",
+    "e2e:live": "node scripts/e2e-live.cjs",
     "verify": "node scripts/check.mjs && node scripts/audit-contrast.mjs && node scripts/e2e-seo.cjs && node scripts/e2e.cjs && node scripts/e2e-design.cjs"
   },
   "devDependencies": {

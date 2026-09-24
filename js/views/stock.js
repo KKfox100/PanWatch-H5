@@ -4,7 +4,7 @@
 
 import { icon } from '../icons.js';
 import { money, pct, price, dirClass, esc, thousands, hhmm } from '../utils.js';
-import { findStock, technicals, klineData, ALERTS, AGENT_CHAIN, MARKETS } from '../data.js';
+import { findStock, technicals, klineData, klineIsLive, ALERTS, AGENT_CHAIN, MARKETS } from '../data.js';
 import { pageHead, marketBadge, scoreBadge, actionChip, techRow, emptyState } from '../ui.js';
 import { klineChart, sparkline } from '../charts.js';
 import * as store from '../store.js';
@@ -30,8 +30,18 @@ export function render(code) {
   const cfg = RANGES.find((r) => r.key === range) || RANGES[2];
 
   const chgCls = dirClass(s.chgPct);
-  const bars = klineData(s.code, s.price, cfg.n);
+  // market 必须传：K 线是按 symbol 存的，光有代码定位不到（000001 既可能
+  // 是上证指数也可能是平安银行）。
+  const bars = klineData(s.code, s.market, s.price, cfg.n);
   const tech = technicals(s.code, s.price);
+
+  // 有真实行情就用真实的开高低量；没有才退回演示估算。
+  // 演示估算值是「价格 × 系数」编出来的，必须在下面写明 ——
+  // 把编出来的数字和真实价格并排摆着不标注，就是在误导。
+  const isLive = !!s.live;
+  const openVal = s.open != null ? price(s.open) : price(s.prev * (1 + (s.chgPct / 100) * 0.3));
+  const highVal = s.high != null ? price(s.high) : price(s.price * 1.012);
+  const lowVal = s.low != null ? price(s.low) : price(s.price * 0.986);
 
   const held = s.held;
   const relatedAlerts = ALERTS.filter((a) => a.code === s.code);
@@ -95,13 +105,19 @@ export function render(code) {
     ` : ''}
 
     <div class="kv-grid">
-      ${kv('今开', price(s.prev * (1 + (s.chgPct / 100) * 0.3)))}
+      ${kv('今开', openVal)}
       ${kv('昨收', price(s.prev))}
-      ${kv('最高', price(s.price * 1.012))}
-      ${kv('最低', price(s.price * 0.986))}
-      ${kv('成交量', thousands(Math.round(s.price * 12)) + ' 手')}
-      ${kv('换手率', (0.8 + Math.abs(s.chgPct) * 0.4).toFixed(2) + '%')}
+      ${kv('最高', highVal)}
+      ${kv('最低', lowVal)}
+      ${isLive
+        ? kv('成交量', s.volume != null ? thousands(Math.round(s.volume)) + ' 股' : '--')
+        : kv('成交量', thousands(Math.round(s.price * 12)) + ' 手')}
+      ${isLive
+        ? kv('成交额', s.amount != null ? money(s.amount) : '--')
+        : kv('换手率', (0.8 + Math.abs(s.chgPct) * 0.4).toFixed(2) + '%')}
     </div>
+    ${isLive ? '' : `<div class="field__hint" style="margin-top:9px">
+      开高低、成交量与换手率为演示估算值，不是真实盘口数据。</div>`}
   </div>
 
   <!-- 标签页 -->
@@ -136,10 +152,17 @@ function kv(label, value, cls = '') {
 
 function renderOverview(s, bars, range) {
   const up = s.chgPct >= 0;
+  // K 线也可能是本地生成的兜底曲线。标注出来 ——
+  // 一条形状漂亮但完全虚构的 K 线摆在真实价格下面，比没有 K 线更糟。
+  const kLive = klineIsLive(s.code, s.market);
   return `
   <div class="chart-wrap">
     <div class="chart-wrap__head">
       <span class="chart-wrap__title">K 线</span>
+      ${kLive
+        ? `<span class="chip chip--accent">真实日 K</span>`
+        : `<span class="chip chip--outline">示意曲线</span>`}
+      <span style="flex:1"></span>
       <span class="range-tabs">
         ${RANGES.map((r) => `
           <button data-stock-range="${r.key}" aria-pressed="${range === r.key}" type="button">${r.key}</button>

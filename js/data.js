@@ -9,6 +9,7 @@
    ========================================================================== */
 
 import { series, klines } from './utils.js';
+import { toSymbol } from './symbols.js';
 
 export const FX = { CNY: 1, USD: 7.24, HKD: 0.925 };
 
@@ -25,7 +26,8 @@ export const STYLES = ['短线', '波段', '长线'];
    持仓原始数据
    -------------------------------------------------------------------------- */
 
-const RAW_ACCOUNTS = [
+// 用 let：接上后端之后，持仓与自选整份由 D1 提供（applyUserData 会替换它）
+let RAW_ACCOUNTS = [
   {
     id: 'zhaoshang',
     name: '招商证券',
@@ -59,7 +61,7 @@ const RAW_ACCOUNTS = [
    关注列表（未持仓）
    -------------------------------------------------------------------------- */
 
-const RAW_WATCHLIST = [
+let RAW_WATCHLIST = [
   { code: '600030', name: '中信证券', market: 'cn', price: 28.64, prev: 27.90, aiScore: 72, note: '券商板块放量' },
   { code: '300750', name: '宁德时代', market: 'cn', price: 268.30, prev: 272.15, aiScore: 69, note: '储能招标超预期' },
   { code: '601899', name: '紫金矿业', market: 'cn', price: 19.82, prev: 19.24, aiScore: 81, note: '金价创新高' },
@@ -123,13 +125,23 @@ export const OPPORTUNITIES = [
    指数
    -------------------------------------------------------------------------- */
 
+/**
+ * 指数
+ *
+ * 每条都显式写死 `symbol`：不能靠「代码 + 市场」推。
+ * `000001` 既可能是上证指数（sh000001）也可能是平安银行（sz000001），
+ * 按规则推会把上证指数推成平安银行 —— 不报错，只是首页那个数字悄悄换了含义。
+ *
+ * 下面的 price / prev 是**离线时的占位值**：只要后端可用，applyQuotes()
+ * 会用真实行情覆盖它们。
+ */
 export const INDICES = [
-  { code: '000001', name: '上证指数', price: 3428.65, prev: 3400.75, market: 'cn' },
-  { code: '399001', name: '深证成指', price: 11256.40, prev: 11118.60, market: 'cn' },
-  { code: '399006', name: '创业板指', price: 2388.15, prev: 2339.95, market: 'cn' },
-  { code: 'HSI', name: '恒生指数', price: 26480.30, prev: 26600.10, market: 'hk' },
-  { code: 'IXIC', name: '纳斯达克', price: 19842.55, prev: 19708.40, market: 'us' },
-  { code: 'SPX', name: '标普500', price: 6142.20, prev: 6120.75, market: 'us' },
+  { code: '000001', symbol: 'sh000001', name: '上证指数', price: 3428.65, prev: 3400.75, market: 'cn' },
+  { code: '399001', symbol: 'sz399001', name: '深证成指', price: 11256.40, prev: 11118.60, market: 'cn' },
+  { code: '399006', symbol: 'sz399006', name: '创业板指', price: 2388.15, prev: 2339.95, market: 'cn' },
+  { code: 'HSI', symbol: 'hkHSI', name: '恒生指数', price: 26480.30, prev: 26600.10, market: 'hk' },
+  { code: 'IXIC', symbol: 'usIXIC', name: '纳斯达克', price: 19842.55, prev: 19708.40, market: 'us' },
+  { code: 'SPX', symbol: 'usINX', name: '标普500', price: 6142.20, prev: 6120.75, market: 'us' },
 ];
 
 /* --------------------------------------------------------------------------
@@ -149,7 +161,7 @@ export const NEWS = [
    价格提醒规则
    -------------------------------------------------------------------------- */
 
-export const ALERTS = [
+export let ALERTS = [
   {
     id: 'al_1', code: '688256', name: '寒武纪-U', market: 'cn', enabled: true,
     logic: 'OR',
@@ -269,58 +281,122 @@ export const AGENT_CHAIN = [
    派生计算
    -------------------------------------------------------------------------- */
 
+/**
+ * 当日走势（迷你走势图用的序列）
+ *
+ * 为什么专门做一个：`series()` 生成的是一条**随机游走**，只保证终点等于
+ * 现价，起点是随机的。以前整站都是演示数据，这没问题；现在价格是真的了，
+ * 把一条起点随机的曲线摆在真实价格旁边就是在误导 —— 用户会以为那是分时图。
+ *
+ * 这里的做法是**两端都锚在真实数据上**（起点 = 昨收，终点 = 现价），
+ * 中间叠一层确定性噪声，噪声用 sin 包络在首尾归零。
+ * 于是涨跌方向和幅度是真的，中间的形状是示意 —— 界面上也照这个口径标注。
+ */
+function daySpark(rec, n = 32) {
+  const prev = Number(rec.prev);
+  const price = Number(rec.price);
+  /* 没有报价就没有走势可言。
+     返回空数组，sparkline 会因为「不足 2 个点」什么都不画 ——
+     硬凑一条 base=0 的直线会渲染出一根贴底的横线，看着像跌了 100%。 */
+  if (!Number.isFinite(price) || price <= 0) return [];
+
+  const a = Number.isFinite(prev) && prev > 0 ? prev : price;
+  const b = price;
+  // series(seed, n, 1, v) 的末位恒为 1；减 1 就得到末位为 0 的噪声
+  const noise = series(`${rec.symbol || rec.code}:day`, n, 1, 0.004).map((v) => v - 1);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 1 : i / (n - 1);
+    const envelope = Math.sin(Math.PI * t); // 首尾为 0，中段最大
+    out.push(a + (b - a) * t + noise[i] * envelope * Math.abs(b || 1));
+  }
+  return out;
+}
+
 /** 单条持仓补全派生字段 */
 function enrichPosition(p) {
   const mkt = MARKETS[p.market];
   const fx = FX[mkt.currency];
-  const mv = p.price * p.shares;              // 原币市值
   const costValue = p.cost * p.shares;
-  const pnl = mv - costValue;                 // 原币盈亏
-  const todayPnl = (p.price - p.prev) * p.shares;
-  const chgPct = p.prev ? ((p.price - p.prev) / p.prev) * 100 : 0;
+
+  /* 有价格吗？
+     数据库里只存「用户事实」—— 成本、股数，**不存价格**（价格是行情，
+     存进库第二天就是错的）。所以 applyUserData 之后、applyQuotes 之前，
+     这些记录没有 price。这段时间不能假装算得出来：NaN 一路传下去会让
+     「总资产」显示成一个破折号，比空着更让人摸不着头脑。
+     所以显式标出 hasQuote，汇总时跳过。 */
+  const hasQuote = Number.isFinite(p.price) && p.price > 0;
+  const hasPrev = Number.isFinite(p.prev) && p.prev > 0;
+
+  const mv = hasQuote ? p.price * p.shares : NaN;            // 原币市值
+  const pnl = hasQuote ? mv - costValue : NaN;               // 原币盈亏
+  const todayPnl = hasQuote && hasPrev ? (p.price - p.prev) * p.shares : NaN;
+  const chgPct = hasQuote && hasPrev ? ((p.price - p.prev) / p.prev) * 100 : NaN;
 
   return {
     ...p,
     marketInfo: mkt,
     currency: mkt.currency,
     fx,
+    hasQuote,
+    hasPrev,
     chgPct,
     mvLocal: mv,
-    mv: mv * fx,                              // 折人民币市值
+    mv: hasQuote ? mv * fx : NaN,                            // 折人民币市值
     pnlLocal: pnl,
-    pnl: pnl * fx,                            // 折人民币盈亏
-    pnlPct: costValue ? (pnl / costValue) * 100 : 0,
+    pnl: hasQuote ? pnl * fx : NaN,                          // 折人民币盈亏
+    // 收益率只跟成本和现价有关，与汇率无关
+    pnlPct: hasQuote && costValue ? (pnl / costValue) * 100 : NaN,
     todayPnlLocal: todayPnl,
-    todayPnl: todayPnl * fx,
+    todayPnl: Number.isFinite(todayPnl) ? todayPnl * fx : NaN,
     todayPct: chgPct,
     costValue: costValue * fx,
-    // 稳定走势序列（种子用 code，保证刷新不变）
-    spark: series(p.code, 32, p.price, p.market === 'us' ? 0.014 : 0.02),
-    sparkBase: p.prev,
+    // 当日走势：两端锚真实值，形状示意（见 daySpark 的说明）
+    spark: daySpark(p),
+    sparkBase: hasPrev ? p.prev : NaN,
   };
 }
 
 /** 关注列表补全 */
 function enrichWatch(w) {
   const mkt = MARKETS[w.market];
-  const chgPct = w.prev ? ((w.price - w.prev) / w.prev) * 100 : 0;
+  const hasQuote = Number.isFinite(w.price) && w.price > 0;
+  const hasPrev = Number.isFinite(w.prev) && w.prev > 0;
+  const chgPct = hasQuote && hasPrev ? ((w.price - w.prev) / w.prev) * 100 : NaN;
   return {
     ...w,
     marketInfo: mkt,
     currency: mkt.currency,
+    hasQuote,
     chgPct,
-    spark: series(w.code, 32, w.price, 0.018),
+    spark: daySpark(w),
   };
+}
+
+/**
+ * 只累加有限值。
+ *
+ * 为什么不能直接 reduce：只要有一个持仓还没拿到报价，它的 mv 就是 NaN，
+ * `0 + NaN` 还是 NaN —— 整张卡片会变成「--」。跳过它至少能显示
+ * 「已拿到报价的那部分」，配合 noQuote 计数把缺口说清楚。
+ */
+function sumFinite(list, pick) {
+  let total = 0;
+  for (const x of list) {
+    const v = pick(x);
+    if (Number.isFinite(v)) total += v;
+  }
+  return total;
 }
 
 /** 账户 + 组合汇总 */
 function buildPortfolio() {
   const accounts = RAW_ACCOUNTS.map((a) => {
     const positions = a.positions.map(enrichPosition);
-    const mv = positions.reduce((s, p) => s + p.mv, 0);
-    const pnl = positions.reduce((s, p) => s + p.pnl, 0);
-    const todayPnl = positions.reduce((s, p) => s + p.todayPnl, 0);
-    const cost = positions.reduce((s, p) => s + p.costValue, 0);
+    const mv = sumFinite(positions, (p) => p.mv);
+    const pnl = sumFinite(positions, (p) => p.pnl);
+    const todayPnl = sumFinite(positions, (p) => p.todayPnl);
+    const cost = sumFinite(positions, (p) => p.costValue);
     return {
       ...a,
       positions,
@@ -331,16 +407,18 @@ function buildPortfolio() {
         todayPnl,
         todayPct: mv - todayPnl > 0 ? (todayPnl / (mv - todayPnl)) * 100 : 0,
         count: positions.length,
+        // 有几只还没报价 —— 界面上要说出来，否则「总市值」少算了什么没人知道
+        noQuote: positions.filter((p) => !p.hasQuote).length,
       },
     };
   });
 
-  const mv = accounts.reduce((s, a) => s + a.total.mv, 0);
-  const cash = accounts.reduce((s, a) => s + a.cash, 0);
-  const pnl = accounts.reduce((s, a) => s + a.total.pnl, 0);
-  const todayPnl = accounts.reduce((s, a) => s + a.total.todayPnl, 0);
-  const cost = accounts.reduce(
-    (s, a) => s + a.positions.reduce((x, p) => x + p.costValue, 0), 0
+  const mv = sumFinite(accounts, (a) => a.total.mv);
+  const cash = sumFinite(accounts, (a) => a.cash);
+  const pnl = sumFinite(accounts, (a) => a.total.pnl);
+  const todayPnl = sumFinite(accounts, (a) => a.total.todayPnl);
+  const cost = sumFinite(
+    accounts.flatMap((a) => a.positions), (p) => p.costValue
   );
   const total = mv + cash;
 
@@ -353,22 +431,57 @@ function buildPortfolio() {
       todayPct: total - todayPnl > 0 ? (todayPnl / (total - todayPnl)) * 100 : 0,
       positionRatio: total ? (mv / total) * 100 : 0,
       count: accounts.reduce((s, a) => s + a.positions.length, 0),
+      noQuote: accounts.reduce((s, a) => s + a.total.noQuote, 0),
       spark: series('portfolio-nav', 40, total, 0.006),
     },
   };
 }
 
-export const PORTFOLIO = buildPortfolio();
-export const WATCHLIST = RAW_WATCHLIST.map(enrichWatch);
+/* --------------------------------------------------------------------------
+   派生结果（可被实时行情整体重建）
+   --------------------------------------------------------------------------
+   这几个用 `let` 导出，配合 rebuild() 在行情更新后整份重算。
+
+   ⚠️ 视图里必须在**函数体内**访问 `PORTFOLIO.xxx` 才能读到新值。
+   ESM 的实时绑定只在「读导出名的那一刻」生效；模块顶层解构
+   （`const { total } = PORTFOLIO`）会把旧对象钉死，行情更新后界面不动。
+   当前所有视图都符合这个要求（已逐个核对过）。
+   -------------------------------------------------------------------------- */
 
 /** 指数补全 */
-export const INDEX_DATA = INDICES.map((i) => ({
-  ...i,
-  marketInfo: MARKETS[i.market],
-  chgPct: ((i.price - i.prev) / i.prev) * 100,
-  chg: i.price - i.prev,
-  spark: series(i.code, 28, i.price, 0.008),
-}));
+function buildIndexData() {
+  return INDICES.map((i) => ({
+    ...i,
+    marketInfo: MARKETS[i.market],
+    chgPct: i.prev ? ((i.price - i.prev) / i.prev) * 100 : 0,
+    chg: i.price - i.prev,
+    spark: daySpark(i, 28),
+  }));
+}
+
+/** 模拟盘持仓补全 */
+function buildPaperHoldings() {
+  return PAPER.holdings.map((h) => {
+    const mkt = MARKETS[h.market];
+    const fx = FX[mkt.currency];
+    const mv = h.price * h.shares * fx;
+    const cost = h.cost * h.shares * fx;
+    return {
+      ...h,
+      marketInfo: mkt,
+      currency: mkt.currency,
+      chgPct: h.prev ? ((h.price - h.prev) / h.prev) * 100 : 0,
+      mv,
+      pnl: mv - cost,
+      pnlPct: h.cost ? ((h.price - h.cost) / h.cost) * 100 : 0,
+      spark: daySpark({ ...h, symbol: toSymbol(h.code, h.market) }, 28),
+    };
+  });
+}
+
+export let PORTFOLIO = buildPortfolio();
+export let WATCHLIST = RAW_WATCHLIST.map(enrichWatch);
+export let INDEX_DATA = buildIndexData();
 
 /** 模拟盘净值曲线 */
 export const PAPER_NAV = (() => {
@@ -390,23 +503,7 @@ export const PAPER_NAV = (() => {
   return out;
 })();
 
-/** 模拟盘持仓补全 */
-export const PAPER_HOLDINGS = PAPER.holdings.map((h) => {
-  const mkt = MARKETS[h.market];
-  const fx = FX[mkt.currency];
-  const mv = h.price * h.shares * fx;
-  const cost = h.cost * h.shares * fx;
-  return {
-    ...h,
-    marketInfo: mkt,
-    currency: mkt.currency,
-    chgPct: ((h.price - h.prev) / h.prev) * 100,
-    mv,
-    pnl: mv - cost,
-    pnlPct: ((h.price - h.cost) / h.cost) * 100,
-    spark: series(h.code + ':paper', 28, h.price, 0.018),
-  };
-});
+export let PAPER_HOLDINGS = buildPaperHoldings();
 
 /** 找股票：先在持仓里找，再在关注/机会里找 */
 export function findStock(code) {
@@ -476,9 +573,31 @@ export function technicals(code, price) {
   return { rows, bulls, bears, resonance, ma5, ma10, ma20, ma60, rsi, k, d, macd, signal, bollMid, sd };
 }
 
-/** K 线 */
-export function klineData(code, price, n = 60) {
+/**
+ * K 线。
+ *
+ * 真实日 K 由 /api/kline 灌入（applyKline）。拿到之前用本地生成的兜底，
+ * 所以离线打开时详情页照样有图，只是图是假的 —— klineIsLive() 用来区分，
+ * 界面据此标注来源。
+ *
+ * 参数从 (code, price, n) 改成 (code, market, price, n)：要定位真实 K 线
+ * 就必须知道市场（600519 和 00700 的 symbol 规则不同）。
+ */
+export function klineData(code, market, price, n = 60) {
+  const symbol = toSymbol(code, market);
+  const real = symbol ? liveKlines.get(symbol) : null;
+  if (real && real.length >= 5) {
+    // 只取 {o,h,l,c}：图表只认这四个字段
+    return real.slice(-n).map((b) => ({ o: b.o, h: b.h, l: b.l, c: b.c }));
+  }
   return klines(code, n, price, 0.02);
+}
+
+/** 这条 K 线是真数据还是本地生成的兜底 */
+export function klineIsLive(code, market) {
+  const symbol = toSymbol(code, market);
+  const real = symbol ? liveKlines.get(symbol) : null;
+  return !!(real && real.length >= 5);
 }
 
 /** 组合按市场分布 */
@@ -497,4 +616,259 @@ export function allocationByMarket() {
     value: v,
     pct: (v / total) * 100,
   })).sort((a, b) => b.value - a.value);
+}
+
+/* ==========================================================================
+   实时行情覆盖层
+   --------------------------------------------------------------------------
+   职责分工：
+     data.js  —— 持有数据、知道怎么重算派生指标
+     live.js  —— 知道什么时候去拉、失败了怎么办
+
+   这里只做「给我一份行情，我把它贴上去并重算」，不碰网络。
+   这样即使没有后端，这一层也完全不参与，站点行为与改造前一致。
+   ========================================================================== */
+
+/** symbol → 最近一次行情快照 */
+const liveQuotes = new Map();
+/** symbol → 真实日 K 线（{date,o,h,l,c,v}） */
+const liveKlines = new Map();
+
+/** 供 UI 显示「数据是哪来的、多旧」 */
+export const liveMeta = {
+  quotesAt: 0,      // 最近一次行情写入本地的时刻（unix ms）
+  applied: 0,       // 本轮覆盖了几条标的
+  missing: 0,       // 有代码但拿不到行情的条数
+  staleCount: 0,    // 行情超出 TTL（拿的是旧价）的条数
+  online: false,
+};
+
+/** 一条记录对应的上游 symbol。指数靠显式 symbol 字段，其余按代码 + 市场推。 */
+function symbolOf(rec) {
+  return rec.symbol || toSymbol(rec.code, rec.market);
+}
+
+/**
+ * 汇总所有需要行情的标的。
+ * 前端用它拼出一次批量请求 —— 一次请求拿全，不要一只股票一个请求。
+ */
+export function collectSymbols() {
+  const out = new Set();
+  const push = (rec) => {
+    const s = symbolOf(rec);
+    if (s) out.add(s);
+  };
+  RAW_ACCOUNTS.forEach((a) => a.positions.forEach(push));
+  RAW_WATCHLIST.forEach(push);
+  OPPORTUNITIES.forEach(push);
+  INDICES.forEach(push);
+  PAPER.holdings.forEach(push);
+  return [...out];
+}
+
+/**
+ * 用行情覆盖本地价格，然后重算全部派生指标。
+ *
+ * 只覆盖 price / prev / 开高低量 —— 成本、股数是用户的事实，行情改不了它们。
+ * 拿不到行情的标的**保持原值不动**：宁可显示旧价，也不要因为一次网络抖动
+ * 把用户的持仓市值清成 0。
+ */
+export function applyQuotes(quoteMap) {
+  let applied = 0;
+  let missing = 0;
+  let stale = 0;
+
+  const patch = (rec) => {
+    const s = symbolOf(rec);
+    const q = s ? quoteMap[s] : null;
+    if (!q || !(q.price > 0)) {
+      missing++;
+      return;
+    }
+    rec.price = q.price;
+    if (q.prevClose > 0) rec.prev = q.prevClose;
+    if (q.open != null) rec.open = q.open;
+    if (q.high != null) rec.high = q.high;
+    if (q.low != null) rec.low = q.low;
+    if (q.volume != null) rec.volume = q.volume;
+    if (q.amount != null) rec.amount = q.amount;
+    if (q.quotedAt) rec.quotedAt = q.quotedAt;
+    rec.live = true;
+    rec.quoteStale = !!q.stale;
+    if (q.stale) stale++;
+    applied++;
+  };
+
+  RAW_ACCOUNTS.forEach((a) => a.positions.forEach(patch));
+  RAW_WATCHLIST.forEach(patch);
+  OPPORTUNITIES.forEach(patch);
+  INDICES.forEach(patch);
+  PAPER.holdings.forEach(patch);
+
+  liveMeta.quotesAt = Date.now();
+  liveMeta.applied = applied;
+  liveMeta.missing = missing;
+  liveMeta.staleCount = stale;
+
+  rebuild();
+  return { applied, missing, stale };
+}
+
+/**
+ * 用 D1 里的数据替换本地持仓 / 自选 / 提醒。
+ *
+ * 空数组也算数 —— 用户真的把持仓删光了，界面就该是空的。
+ * 「数组为空就保留演示数据」看着更友好，实际是让用户删不掉东西。
+ */
+export function applyUserData({ portfolio, watchlist, alerts } = {}) {
+  let changed = false;
+
+  if (Array.isArray(portfolio)) {
+    RAW_ACCOUNTS = portfolio.map((a) => ({
+      id: a.id,
+      name: a.name,
+      cash: Number(a.cash) || 0,
+      positions: (a.positions || []).map((p) => ({
+        code: String(p.code),
+        market: p.market || 'cn',
+        name: p.name || String(p.code),
+        cost: Number(p.cost) || 0,
+        shares: Number(p.shares) || 0,
+        style: p.style || undefined,
+        aiScore: p.aiScore == null ? undefined : p.aiScore,
+        aiAction: p.aiAction || undefined,
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        agent: p.agent || undefined,
+        alert: p.alert || undefined,
+        stale: !!p.stale,
+      })),
+    }));
+    changed = true;
+  }
+
+  if (Array.isArray(watchlist)) {
+    RAW_WATCHLIST = watchlist.map((w) => ({
+      code: String(w.code),
+      market: w.market || 'cn',
+      name: w.name || String(w.code),
+      note: w.note || undefined,
+      aiScore: w.aiScore == null ? undefined : w.aiScore,
+    }));
+    changed = true;
+  }
+
+  if (Array.isArray(alerts)) {
+    ALERTS = alerts.map((a) => ({ ...a }));
+    changed = true;
+  }
+
+  if (changed) rebuild();
+  return changed;
+}
+
+/** 灌入真实日 K 线（详情页用） */
+export function applyKline(symbol, bars) {
+  if (!symbol || !Array.isArray(bars) || !bars.length) return false;
+  liveKlines.set(symbol, bars);
+  return true;
+}
+
+/** 本地有没有这条 K 线 */
+export function hasKline(symbol) {
+  return liveKlines.has(symbol);
+}
+
+/** 整体重算派生结果。行情一变、用户数据一变，都走这里。 */
+function rebuild() {
+  PORTFOLIO = buildPortfolio();
+  WATCHLIST = RAW_WATCHLIST.map(enrichWatch);
+  INDEX_DATA = buildIndexData();
+  PAPER_HOLDINGS = buildPaperHoldings();
+}
+
+/* --------------------------------------------------------------------------
+   回写用的原始数据
+   --------------------------------------------------------------------------
+   必须导出「原始事实」而不是 PORTFOLIO / WATCHLIST —— 那两份是派生结果，
+   带着 mv / pnl / spark 这些算出来的字段。把它们回写到 D1 会造成
+   「库里存了市值」这种自相矛盾：下次行情一变，库里的市值就是错的，
+   而且没人知道它对应哪个时刻的价格。
+   -------------------------------------------------------------------------- */
+
+/** 账户 + 持仓（只有成本、股数这些用户事实） */
+export function rawAccounts() {
+  return RAW_ACCOUNTS.map((a) => ({
+    id: a.id,
+    name: a.name,
+    cash: a.cash,
+    positions: a.positions.map((p) => ({
+      code: p.code,
+      market: p.market,
+      name: p.name,
+      cost: p.cost,
+      shares: p.shares,
+      style: p.style,
+      aiScore: p.aiScore,
+      aiAction: p.aiAction,
+      tags: p.tags,
+      agent: p.agent,
+      alert: p.alert,
+      stale: p.stale,
+    })),
+  }));
+}
+
+export function rawWatchlist() {
+  return RAW_WATCHLIST.map((w) => ({
+    code: w.code, market: w.market, name: w.name, note: w.note, aiScore: w.aiScore,
+  }));
+}
+
+export function rawAlerts() {
+  return ALERTS.map((a) => ({ ...a }));
+}
+
+/**
+ * 改一条持仓的成本 / 股数，或删掉它。
+ * 只动原始事实，派生指标由 rebuild() 重算 —— 这样不会出现
+ * 「改了股数但市值没跟着变」。
+ */
+export function updatePosition(accountId, code, patch) {
+  const acct = RAW_ACCOUNTS.find((a) => a.id === accountId);
+  if (!acct) return false;
+  const idx = acct.positions.findIndex((p) => p.code === code);
+  if (idx < 0) return false;
+
+  if (patch === null) {
+    acct.positions.splice(idx, 1);
+  } else {
+    const p = acct.positions[idx];
+    if (patch.cost != null && Number.isFinite(Number(patch.cost))) p.cost = Number(patch.cost);
+    if (patch.shares != null && Number.isFinite(Number(patch.shares))) p.shares = Number(patch.shares);
+    if (patch.style != null) p.style = patch.style;
+  }
+  rebuild();
+  return true;
+}
+
+/** 改一条自选的备注 / 评分；patch 为 null 表示移除 */
+export function updateWatch(code, patch) {
+  const idx = RAW_WATCHLIST.findIndex((w) => w.code === code);
+  if (idx < 0) return false;
+  if (patch === null) RAW_WATCHLIST.splice(idx, 1);
+  else {
+    const w = RAW_WATCHLIST[idx];
+    if (patch.note != null) w.note = patch.note;
+    if (patch.aiScore != null) w.aiScore = Number(patch.aiScore);
+  }
+  rebuild();
+  return true;
+}
+
+/** 开关一条提醒规则 */
+export function setAlertEnabled(id, enabled) {
+  const a = ALERTS.find((x) => x.id === id);
+  if (!a) return false;
+  a.enabled = !!enabled;
+  return true;
 }

@@ -22,6 +22,11 @@ node_modules/
 .wrangler/
 .wrangler-dry/
 
+# 服务端代码：跑在 Worker 里，不该作为静态资源对外
+# （wrangler 会把 main 指向的模块打进 Worker bundle，与这里是否排除无关）
+worker/
+migrations/
+
 # 工具链与配置：线上不需要，且会把源码和配置挂到公网
 scripts/
 wrangler.jsonc

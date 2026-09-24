@@ -15,7 +15,12 @@ const DEFAULTS = {
   alertStates: {},            // { [alertId]: boolean }
   paperRange: '3M',           // 1M | 3M | 6M | 1Y
   settings: {
+    // 留空 = 同源（和静态资源同一个 Worker）。自建后端时才需要填。
     apiBase: '',
+    // 写入令牌。服务端设了 WRITE_TOKEN 就必须在这里填一致的，否则写操作 401。
+    // ⚠️ 它存在浏览器 localStorage 里 —— 能打开这个页面的人就能读到它。
+    //    这是「无登录单租户」的固有代价，别把它当成真正的账号体系。
+    apiToken: '',
     refreshSec: 30,
     autoRefresh: true,
     channels: { telegram: true, wechat: true, dingtalk: false, feishu: false, bark: false, webhook: false },
@@ -56,6 +61,18 @@ export function set(patch) {
 
 export function setSetting(key, value) {
   state = { ...state, settings: { ...state.settings, [key]: value } };
+  persist();
+  emit();
+}
+
+/**
+ * 一次合并多个设置项。
+ * 和 setSetting 的区别是「来源」：这个用于把**服务端读回来的**设置灌进来，
+ * 不适合表达「用户刚改了一项」。
+ */
+export function mergeSettings(patch) {
+  if (!patch || typeof patch !== 'object') return;
+  state = { ...state, settings: { ...state.settings, ...patch } };
   persist();
   emit();
 }

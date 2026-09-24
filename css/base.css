@@ -116,6 +116,98 @@ h1, h2, h3, h4, p { margin: 0; }
 
 .appbar__spacer { flex: 1; }
 
+/* --------------------------------------------------------------------------
+   数据源标识
+   --------------------------------------------------------------------------
+   顶栏里必须能一眼看出「现在这些价格是真的还是假的」。
+   状态用「圆点 + 短词」表达，完整说明放在 title 里：
+
+     offline  灰点 · 演示    —— 没有后端，价格是内置样本（这是正常状态，不该像故障）
+     probing  琥珀点 · 连接中 —— 正在探测
+     online   蓝点 · 实时    —— 后端在，报价来自腾讯财经
+     stale    琥珀点 · 延迟  —— 后端在，但部分代码回落到了缓存
+
+   为什么在线态用蓝而不是绿：全站的绿已经在表示「跌」了
+   （A 股约定红涨绿跌）。这里再放一个绿点，会让人下意识读成行情下跌。
+   -------------------------------------------------------------------------- */
+
+.srcchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+              border-color var(--dur) var(--ease);
+}
+.srcchip:active { transform: scale(0.96); }
+
+.srcchip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: currentColor;
+}
+
+/* 离线 · 演示：刻意做得最不显眼，因为这是默认状态而不是错误 */
+.srcchip--offline {
+  background: var(--surface-sunken);
+  color: var(--ink-3);
+  border-color: var(--line-soft);
+}
+.srcchip--offline .srcchip__dot { background: var(--line-emphasis); }
+
+/* 在线 · 实时 */
+.srcchip--online {
+  background: var(--accent-soft);
+  color: var(--accent-on-soft);
+  border-color: color-mix(in srgb, var(--accent-fill) 24%, transparent);
+}
+.srcchip--online .srcchip__dot {
+  background: var(--accent-fill);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--accent-fill) 22%, transparent);
+}
+
+/* 部分延迟 / 连接中 */
+.srcchip--stale,
+.srcchip--probing {
+  background: var(--warn-soft);
+  color: var(--warn-on-soft);
+  border-color: color-mix(in srgb, var(--warn-fill) 24%, transparent);
+}
+.srcchip--stale .srcchip__dot,
+.srcchip--probing .srcchip__dot {
+  background: var(--warn-fill);
+  animation: srcchip-pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes srcchip-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .srcchip--stale .srcchip__dot,
+  .srcchip--probing .srcchip__dot { animation: none; }
+}
+
+/* 超窄屏（≤360px）腾地方：
+   顶栏此时要塞下 品牌 + 数据源 + 时段 + 设置 四样东西，一定会溢出。
+   时段信息在首页也有一份，可以牺牲；但数据源标识不能省 —— 它是唯一
+   能区分真假价格的地方。 */
+@media (max-width: 360px) {
+  .brand__ver { display: none; }
+  .appbar__inner [data-phase] { display: none; }
+}
+
 .icon-btn {
   width: 34px;
   height: 34px;

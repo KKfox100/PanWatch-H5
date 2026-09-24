@@ -53,7 +53,8 @@ export function render() {
 
   <div class="notice">${icon('brain')}
     <span>基于 <b>技术形态 + 资金流 + 基本面 + 情绪</b> 四维打分。评分仅供研究参考，
-      <b>不构成投资建议</b>，请结合自身风险承受能力决策。</span>
+      <b>不构成投资建议</b>，请结合自身风险承受能力决策。
+      评分与理由为内置的演示数据，不随行情变化；现价与涨跌是实时行情。</span>
   </div>
 
   <div class="stat-grid" style="margin-bottom:4px">

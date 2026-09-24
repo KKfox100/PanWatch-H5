@@ -153,6 +153,24 @@ class CDP {
       .filter((e) => e.method === 'Log.entryAdded' && e.params.entry.level === 'error')
       .map((e) => e.params.entry.text);
   }
+
+  /**
+   * 同上，但带上 URL 与来源。
+   *
+   * 为什么需要：浏览器为**任何**失败请求打的日志，text 只有一句
+   * 「Failed to load resource: the server responded with a status of 404」，
+   * 里面**不含 URL**。而「/api/health 在纯静态部署下必然 404」是一条
+   * 预期内的噪音，必须能精确认出它 —— 否则只能按数量放行，那等于
+   * 把真正的资源 404 一起放过去了。
+   */
+  consoleErrorEntries() {
+    return this.events
+      .filter((e) => e.method === 'Log.entryAdded' && e.params.entry.level === 'error')
+      .map((e) => {
+        const en = e.params.entry;
+        return { text: en.text, url: en.url || '', source: en.source || '' };
+      });
+  }
 }
 
 /* ------------------------------------------------------------------ *

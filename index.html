@@ -23,7 +23,7 @@
 
   <title>盯盘侠 PanWatch H5 · 自托管 AI 盯盘助手</title>
   <meta name="description"
-        content="盯盘侠 PanWatch 的移动端 H5 版本：自托管 AI 盯盘助手，支持 A股/港股/美股多账户持仓管理、AI 评分选股、价格提醒与模拟盘。原生 HTML/CSS/ES Module，零构建零依赖，可一键部署到 Cloudflare Workers。界面内所有行情均为内置演示数据。">
+        content="盯盘侠 PanWatch 的移动端 H5 版本：自托管 AI 盯盘助手，支持 A股/港股/美股多账户持仓管理、AI 评分选股、价格提醒与模拟盘。原生 HTML/CSS/ES Module，零构建零依赖；可部署为纯静态站点，也可加上 Cloudflare Worker + D1 后端读取腾讯财经实时行情并持久化数据。页面顶栏会标出当前是实时行情还是演示数据。">
   <meta name="keywords"
         content="盯盘侠,PanWatch,AI 盯盘,盯盘助手,股票持仓管理,A股,港股,美股,自选股,价格提醒,AI 选股,模拟盘,移动端看盘,H5,Cloudflare Workers,莫兰迪配色">
   <meta name="author" content="KKfox100">
@@ -37,7 +37,7 @@
   <meta property="og:locale" content="zh_CN">
   <meta property="og:title" content="盯盘侠 PanWatch H5 · 自托管 AI 盯盘助手">
   <meta property="og:description"
-        content="自托管 AI 盯盘助手的移动端 H5 版本：A股/港股/美股多账户持仓、AI 评分选股、价格提醒、模拟盘。零构建零依赖，可部署到 Cloudflare Workers。">
+        content="自托管 AI 盯盘助手的移动端 H5 版本：A股/港股/美股多账户持仓、AI 评分选股、价格提醒、模拟盘。可部署为纯静态站点，也可加上 Cloudflare Worker + D1 后端读取实时行情。">
   <meta property="og:url" content="https://panwatch-h5.workers.dev/">
   <meta property="og:image" content="https://panwatch-h5.workers.dev/public/og.png">
   <meta property="og:image:type" content="image/png">
@@ -50,7 +50,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="盯盘侠 PanWatch H5 · 自托管 AI 盯盘助手">
   <meta name="twitter:description"
-        content="自托管 AI 盯盘助手的移动端 H5 版本：A股/港股/美股多账户持仓、AI 评分选股、价格提醒、模拟盘。零构建零依赖。">
+        content="自托管 AI 盯盘助手的移动端 H5 版本：A股/港股/美股多账户持仓、AI 评分选股、价格提醒、模拟盘。可部署为纯静态站点，也可加上 Worker + D1 后端读取实时行情。">
   <meta name="twitter:image" content="https://panwatch-h5.workers.dev/public/og.png">
   <meta name="twitter:image:alt"
         content="盯盘侠 PanWatch H5 界面预览：莫兰迪灰调配色，持仓总览与净值曲线">
@@ -115,11 +115,13 @@
           "价格提醒：条件组合 AND/OR、生效时段、冷却时间、日触发上限、重复模式、多推送渠道",
           "个股详情：K 线（MA5/10/20 与成交量）、五项技术指标共振信号灯、支撑压力位",
           "模拟盘：策略净值曲线对比基准、四档时间区间、六项绩效指标",
+          "实时行情（可选）：Worker 从腾讯财经拉取 A股/港股/美股报价，缓存进 D1 并按 15 秒有效期刷新",
+          "数据持久化（可选）：持仓、自选、提醒与设置存放在 D1（托管的 SQLite），读取公开、写入需令牌",
           "浅色与深色两套设计令牌，跟随系统或手动切换",
           "可安装为 PWA 并离线打开"
         ],
         "screenshot": "https://panwatch-h5.workers.dev/public/og.png",
-        "disambiguatingDescription": "这是一个用于展示界面与交互的开源前端模板，界面内所有行情、持仓、AI 评分与投资结论均为内置的伪随机演示数据，不来自任何真实行情源，不构成投资建议，不可用于任何实际投资决策。"
+        "disambiguatingDescription": "这是一个开源前端模板，可作为纯静态演示运行：此时数据全部内置、由伪随机序列生成，是虚构的演示数据。配上 Cloudflare Worker 与 D1 数据库后，它会读取腾讯财经的实时行情。页面顶栏会标出当前数据是实时还是演示。无论哪种模式，都不构成投资建议，不可用于任何实际投资决策。"
       },
       {
         "@type": "FAQPage",
@@ -131,7 +133,7 @@
             "name": "盯盘侠 PanWatch H5 需要服务器或数据库吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "不需要。它是纯静态站点，没有后端。偏好设置存在浏览器的 localStorage 里，不上传任何数据。"
+              "text": "看怎么用。默认部署是纯静态站点，没有后端，数据全部内置；再配上一个 Cloudflare Worker 与 D1 数据库，它就会拉取真实行情，并把持仓、自选、提醒持久化进 D1。两种模式共用同一份前端代码，没探测到后端时会自动回落到演示数据。"
             }
           },
           {
@@ -139,7 +141,7 @@
             "name": "它连接真实的行情数据源吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "不连接。所有数字都是内置的演示数据，由确定性伪随机序列生成，不随市场变化。要接真实数据需要自行实现后端。"
+              "text": "配了后端就连接。Worker 从腾讯财经拉取 A股、港股、美股的实时行情，缓存进 D1 并按 15 秒的有效期刷新；页面顶栏会明确标出当前显示的是「实时」还是「演示」。没有后端时不联网，所有数字都是内置的演示数据。"
             }
           },
           {
@@ -163,7 +165,7 @@
             "name": "可以自己部署吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers 的静态资源托管。"
+              "text": "可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers；要用实时行情，再建一个 D1 数据库并跑一次建表脚本。"
             }
           }
         ]
@@ -249,8 +251,9 @@
         <p class="nojs__badge">无 JavaScript 版本</p>
         <h1>盯盘侠 PanWatch H5</h1>
         <p class="nojs__lead">
-          自托管 AI 盯盘助手的移动端 H5 版本。纯静态、零构建、零运行时依赖，
-          可一键部署到 Cloudflare Workers。
+          自托管 AI 盯盘助手的移动端 H5 版本。零构建、零运行时依赖 ——
+          可部署为纯静态站点，也可以配上一个 Cloudflare Worker + D1 后端
+          读取真实行情并持久化数据。
         </p>
         <p class="nojs__notice">
           交互界面需要启用 JavaScript。下面是这个项目的完整说明 ——
@@ -261,11 +264,12 @@
       <h2>这是什么</h2>
       <p>
         盯盘侠（PanWatch）是一个自托管的股票盯盘助手。H5 版本把它的核心能力搬进了浏览器：
-        打开网页就能看持仓、盯自选、设提醒，不需要安装 App，也不需要服务器。
+        打开网页就能看持仓、盯自选、设提醒，不需要安装 App。
       </p>
       <p>
         整个应用由原生 HTML、CSS 与 ES Module 组成 —— 没有打包步骤，没有框架，
-        没有运行时依赖。三个样式文件加十四个脚本文件就是全部。
+        没有运行时依赖。三个样式文件加十七个前端脚本就是全部；
+        需要后端时，再加四个文件构成的 Cloudflare Worker。
       </p>
 
       <h2>主要功能</h2>
@@ -302,14 +306,19 @@
 
       <h2>数据说明</h2>
       <p>
-        <strong>界面内所有行情、持仓、AI 评分与投资结论都是内置的演示数据。</strong>
-        它们由确定性伪随机序列生成，不来自任何真实行情源，不随市场变化，
-        也不构成任何投资建议。
+        数据有两个来源，页面顶栏会明确标出当前用的是哪一个 ——
+        「实时」和「演示」长得不一样。
       </p>
       <p>
-        之所以要专门说明，是因为这个项目的定位是
-        <strong>展示界面与交互的开源前端模板</strong>，而不是行情软件。
-        把它显示的任何一个数字当成实时行情，都会得出错误结论。
+        <strong>配了后端时</strong>，一个 Cloudflare Worker 从腾讯财经拉取
+        A股、港股、美股的实时行情，缓存进 D1（托管的 SQLite）并按 15 秒的有效期刷新；
+        持仓、自选、提醒这些用户数据也持久化在 D1 里。行情仅供参考，不构成投资建议。
+      </p>
+      <p>
+        <strong>没有后端时</strong>，站点按纯静态模式运行，不联网，
+        <strong>界面内所有行情、持仓、AI 评分与投资结论都是内置的演示数据</strong>，
+        由确定性伪随机序列生成，不来自任何真实行情源，不随市场变化。
+        这种模式下把其中任何一个数字当成实时行情，都会得出错误结论。
       </p>
 
       <h2>技术栈</h2>
@@ -322,16 +331,24 @@
         </li>
         <li>全部配色按 WCAG 2.1 验算，88 组受判定组合全部达到 AA 标准</li>
         <li>Service Worker 预缓存，支持离线打开</li>
-        <li>可部署到 Cloudflare Workers 静态资源托管</li>
+        <li>
+          可选后端：Cloudflare Worker + D1（托管的 SQLite），静态资源与 API
+          属于同一次部署，不需要另外找服务器
+        </li>
+        <li>
+          前端与 Worker 共用同一个 js/symbols.js 模块，
+          「股票代码 ↔ 上游行情代码」的换算只有一处定义
+        </li>
+        <li>可部署到 Cloudflare Workers：纯静态托管，或加上 Worker + D1 后端</li>
       </ul>
 
       <h2>常见问题</h2>
       <dl>
         <dt>盯盘侠 PanWatch H5 需要服务器或数据库吗？</dt>
-        <dd>不需要。它是纯静态站点，没有后端。偏好设置存在浏览器的 localStorage 里，不上传任何数据。</dd>
+        <dd>看怎么用。默认部署是纯静态站点，没有后端，数据全部内置；再配上一个 Cloudflare Worker 与 D1 数据库，它就会拉取真实行情，并把持仓、自选、提醒持久化进 D1。两种模式共用同一份前端代码，没探测到后端时会自动回落到演示数据。</dd>
 
         <dt>它连接真实的行情数据源吗？</dt>
-        <dd>不连接。所有数字都是内置的演示数据，由确定性伪随机序列生成，不随市场变化。要接真实数据需要自行实现后端。</dd>
+        <dd>配了后端就连接。Worker 从腾讯财经拉取 A股、港股、美股的实时行情，缓存进 D1 并按 15 秒的有效期刷新；页面顶栏会明确标出当前显示的是「实时」还是「演示」。没有后端时不联网，所有数字都是内置的演示数据。</dd>
 
         <dt>支持哪些股票市场？</dt>
         <dd>A股、港股、美股。多币种持仓会按内置汇率折算成人民币，统一计算市值与盈亏。</dd>
@@ -340,7 +357,7 @@
         <dd>色板取自莫兰迪静物画的灰调，所有颜色都掺入一层暖灰并压低饱和度。涨跌仍严格遵循中国市场习惯：涨红跌绿。全部配色按 WCAG 2.1 验算过对比度。</dd>
 
         <dt>可以自己部署吗？</dt>
-        <dd>可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers 的静态资源托管。</dd>
+        <dd>可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers；要用实时行情，再建一个 D1 数据库并跑一次建表脚本。</dd>
       </dl>
 
       <h2>来源与许可</h2>
@@ -354,7 +371,7 @@
 
       <footer class="nojs__foot">
         <p>
-          本页所有内容均为演示用途。市场有风险，决策需谨慎。
+          市场有风险，决策需谨慎。行情数据仅供参考，不构成投资建议。
         </p>
       </footer>
     </article>

@@ -63,18 +63,29 @@ export function render() {
   </div>
 
   <!-- 净值走势 -->
-  <div class="section-title">${icon('activity')}<span>账户净值走势</span></div>
+  <!-- 账户净值走势
+       ⚠️ 这条曲线是伪随机生成的**示意形状**，不是真实历史净值 ——
+          本站没有存每日快照。顶栏说「实时」指的是报价，不包括这条曲线，
+          所以必须在这里单独标出来。右侧那个百分比倒是真的（持仓今日涨跌）。 -->
+  <div class="section-title">${icon('activity')}<span>账户净值走势</span>
+    <span class="section-title__spacer"></span>
+    <span class="chip chip--outline">曲线示意</span>
+  </div>
   <div class="chart-wrap">
     <div class="chart-wrap__head">
       <span class="chart-wrap__title">近 40 个交易日</span>
       <span class="chart-wrap__val ${dirClass(t.todayPct)}">${pct(t.todayPct)}</span>
     </div>
     ${areaChart(navSeries.map((d, i) => ({ nav: d.nav * 1000 })), { w: 320, h: 130, showAxis: true })}
+    <div class="field__hint" style="margin-top:8px">
+      曲线形状为示意，未存每日快照；右侧百分比是持仓的今日涨跌。
+    </div>
   </div>
 
   <!-- AI 盘前分析 -->
   <div class="section-title">${icon('brain')}<span>AI 盘前分析</span>
     <span class="section-title__spacer"></span>
+    <span class="chip chip--outline">演示内容</span>
     <span class="section-title__more">${esc(PREMARKET.generatedAt)}</span>
   </div>
 

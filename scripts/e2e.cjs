@@ -720,10 +720,40 @@ async function reload(b) {
       await navTo(b, k);
       seen.push(k);
     }
-    const errs = b.consoleErrors().filter((e) =>
-      !/favicon|DevTools|Autofill|third-party cookie|Permissions policy/i.test(e)
+    /* 控制台报错。
+       ⚠️ 有一条是**预期内**的：纯静态部署下 /api/health 必然 404，
+          这正是「没有后端」的探测信号。浏览器会为任何失败请求打一条
+          error 级日志，JS 侧无法抑制。
+          所以按 URL 精确放行这一条 —— 但不能只是放过：紧接着必须断言
+          应用真的进入了离线演示状态。否则将来探测本身出问题（比如
+          抛异常导致白屏）也会被这条规则掩盖。 */
+    const EXPECTED_404 = /\/api\/health(\?|$)/;
+    const errs = b.consoleErrorEntries().filter(
+      (e) => !/favicon|DevTools|Autofill|third-party cookie|Permissions policy/i.test(e.text)
     );
-    check('遍历 6 个页面无控制台报错', errs.length === 0, errs.slice(0, 4).join(' | '));
+    const unexpected = errs.filter((e) => !EXPECTED_404.test(e.url));
+    check('遍历 6 个页面无控制台报错', unexpected.length === 0,
+      unexpected.slice(0, 4).map((e) => `${e.url || '(无URL)'} :: ${e.text}`).join(' | '));
+    const allowed = errs.filter((e) => EXPECTED_404.test(e.url));
+    check('放行的只有 /api/health 这一条预期 404', allowed.length <= 1,
+      `实际 ${allowed.length} 条：${allowed.map((e) => e.url).join(', ')}`);
+
+    // 放行 /api/health 的代价：必须证明降级路径真的生效
+    const chip = await b.eval(`(() => {
+      const el = document.querySelector('[data-src-chip]');
+      const label = document.querySelector('[data-src-label]');
+      return {
+        has: !!el,
+        label: label ? label.textContent.trim() : null,
+        cls: el ? el.className : null,
+        title: el ? el.title : null,
+      };
+    })()`);
+    check('无后端时顶栏标出「演示」，不假装实时',
+      chip.has && chip.label === '演示' && /srcchip--offline/.test(chip.cls),
+      JSON.stringify(chip));
+    check('无后端时数据源提示说明了原因',
+      typeof chip.title === 'string' && /未连接后端/.test(chip.title), String(chip.title));
 
     const assets = await b.eval(`(async () => {
       // 注意：_headers 不在列表里 —— Cloudflare 会把它解析成响应头规则，

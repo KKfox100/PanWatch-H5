@@ -93,6 +93,13 @@ export function render() {
     </div>
   </div>
 
+  <!-- 有持仓拿不到报价时，必须说出来。
+       汇总会把它们剔除（否则一个 NaN 就让整张卡片变成「--」），
+       但「悄悄少算」比「显示 --」更危险 —— 用户会拿一个偏小的市值去判断仓位。 -->
+  ${t.noQuote ? `<div class="notice" style="margin-top:9px">${icon('warn')}
+    <span>有 <b>${t.noQuote}</b> 只持仓暂时取不到报价，已从市值与盈亏里剔除，
+      所以上面的合计偏小。</span></div>` : ''}
+
   <!-- 持仓 / 关注 -->
   <div style="display:flex;align-items:center;margin:16px 0 10px">
     <div class="segmented">

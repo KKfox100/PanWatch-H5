@@ -7,6 +7,15 @@ import { esc, thousands } from '../utils.js';
 import { PORTFOLIO, WATCHLIST, OPPORTUNITIES, ALERTS } from '../data.js';
 import { pageHead, settingRow, switchEl } from '../ui.js';
 import * as store from '../store.js';
+import { live, sinceLabel, isOnline, sourceLabel, init as reconnect } from '../live.js';
+
+/** 与 worker/wrangler 配置里的 APP_VERSION 对齐 */
+const APP_VERSION = 'v0.2.0-h5';
+
+/** 本页自用的小键值对（ui.js 里的 kv 是给行情页用的，格式不同） */
+function kvRow(label, value, cls = '') {
+  return `<dl class="kv"><dt>${esc(label)}</dt><dd class="${cls}">${value}</dd></dl>`;
+}
 
 const CHANNELS = [
   { key: 'telegram', label: 'Telegram', desc: 'Bot Token + Chat ID', iconName: 'telegram', tone: 'accent' },
@@ -37,9 +46,11 @@ const PALETTE = [
 
 export function render() {
   const s = store.get();
+  const online = isOnline();
+  const stale = live.staleCount > 0;
 
   return `
-  ${pageHead('设置', '偏好保存在本地浏览器', '')}
+  ${pageHead('设置', online ? '已连接后端 · 实时行情' : '未连接后端 · 内置演示数据', '')}
 
   <!-- 账户 -->
   <div class="card card--pad" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
@@ -48,11 +59,12 @@ export function render() {
       <span style="width:22px;height:22px">${icon('user')}</span>
     </span>
     <span style="flex:1;min-width:0">
-      <span style="display:block;font-size:15px;font-weight:680">演示账户</span>
+      <span style="display:block;font-size:15px;font-weight:680">${online ? '单租户共享数据' : '演示账户'}</span>
       <span style="display:block;font-size:11.5px;color:var(--ink-3);margin-top:2px">
         ${PORTFOLIO.accounts.length} 个券商账户 · ${PORTFOLIO.total.count} 只持仓 · ${WATCHLIST.length} 只关注</span>
     </span>
-    <span class="chip chip--sage">本地模式</span>
+    <span class="chip chip--${online ? (stale ? 'warn' : 'accent') : 'outline'}">
+      ${online ? (stale ? '实时 · 延迟' : '实时行情') : '演示数据'}</span>
   </div>
 
   <!-- 外观 -->
@@ -84,13 +96,61 @@ export function render() {
 
   <!-- 数据与连接 -->
   <div class="section-title">${icon('server')}<span>数据与连接</span></div>
+
+  <!-- 实时状态卡 ——
+       全站唯一能确认「这些数字到底是不是真的」的地方。
+       顶栏那个小标识只说结论，这里说清楚来龙去脉。 -->
+  <div class="card card--pad" style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:11px">
+      <span class="list__icon list__icon--${online ? 'accent' : 'warn'}">
+        ${icon(online ? 'wifi' : 'info')}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:14px;font-weight:680">${esc(sourceLabel())}</span>
+        <span style="display:block;font-size:11.5px;color:var(--ink-3);margin-top:2px">
+          ${online
+            ? `行情源：腾讯财经（qt.gtimg.cn）· 更新于 ${sinceLabel()}`
+            : live.everSynced
+              ? '与后端的连接已断开，屏幕上是上次同步的数据'
+              : '所有行情、持仓与评分均为内置演示数据'}</span>
+      </span>
+    </div>
+
+    <div class="kv-grid" style="grid-template-columns:repeat(2,1fr)">
+      ${kvRow('服务端版本', live.serverVersion ? esc(live.serverVersion) : '—')}
+      ${kvRow('最近同步', live.lastSync ? sinceLabel() : '—')}
+      ${kvRow('已覆盖报价', online ? `${live.applied} 条` : '—')}
+      ${kvRow('写入鉴权', live.writeProtected ? '需要令牌' : (online ? '未启用' : '—'))}
+    </div>
+
+    ${live.lastError ? `<div class="notice" style="margin-top:11px">${icon('warn')}
+      <span>${esc(live.lastError)}</span></div>` : ''}
+
+    <button class="btn btn--sm btn--ghost" data-act="refresh" type="button" style="margin-top:11px">
+      ${icon('refresh')}立即同步</button>
+
+    <div class="field__hint" style="margin-top:9px">
+      ${online
+        ? `读取公开；写入（改持仓、自选、提醒）需要令牌。数据存放在 Cloudflare D1 上，全站共享一份。`
+        : `没有探测到后端，站点按纯静态模式运行 —— 不联网、不上传任何数据，
+           所有改动只留在本机浏览器里。`}
+    </div>
+  </div>
+
   <div class="list" style="margin-bottom:12px">
     ${settingRow({
       iconName: 'server', tone: 'accent',
-      title: '后端 API 地址',
+      title: '后端地址',
       desc: s.settings.apiBase
         ? esc(s.settings.apiBase)
-        : '未配置 · 当前使用内置演示数据',
+        : '同源（与静态资源同一个 Worker）',
+      tail: `<button class="btn btn--sm btn--ghost" data-act="edit-api" type="button">配置</button>`,
+    })}
+    ${settingRow({
+      iconName: 'shield', tone: live.writeProtected ? 'sage' : 'warn',
+      title: '写入令牌',
+      desc: s.settings.apiToken
+        ? `已填写 · ${'•'.repeat(Math.min(12, s.settings.apiToken.length))}`
+        : (live.writeProtected ? '未填写 · 写入会被拒绝' : '未设置'),
       tail: `<button class="btn btn--sm btn--ghost" data-act="edit-api" type="button">配置</button>`,
     })}
     ${settingRow({
@@ -102,7 +162,7 @@ export function render() {
     ${settingRow({
       iconName: 'clock',
       title: '刷新间隔',
-      desc: '演示数据下不生效',
+      desc: '服务端有 15 秒缓存，比这更密不会更快',
       tail: `<select class="input" style="width:88px;height:32px;font-size:12px" data-setting-input="refreshSec">
         ${[10, 15, 30, 60, 120].map((n) =>
           `<option value="${n}" ${s.settings.refreshSec === n ? 'selected' : ''}>${n}s</option>`).join('')}
@@ -151,7 +211,7 @@ export function render() {
     <dl class="kv"><dt>机会池</dt><dd>${OPPORTUNITIES.length} 只</dd></dl>
     <dl class="kv"><dt>提醒规则</dt><dd>${ALERTS.length} 条</dd></dl>
     <dl class="kv"><dt>组合市值</dt><dd>${thousands(Math.round(PORTFOLIO.total.mv / 10000))} 万</dd></dl>
-    <dl class="kv"><dt>数据来源</dt><dd>内置演示</dd></dl>
+    <dl class="kv"><dt>数据来源</dt><dd>${online ? '实时行情' : '内置演示'}</dd></dl>
   </div>
 
   <!-- 关于 -->
@@ -161,7 +221,7 @@ export function render() {
       iconName: 'spark', tone: 'accent',
       title: '盯盘侠 PanWatch · H5',
       desc: '自托管 AI 盯盘助手的移动端 H5 版本',
-      tail: `<span class="chip chip--outline">v0.1.0-h5</span>`,
+      tail: `<span class="chip chip--outline">${APP_VERSION}</span>`,
     })}
     ${settingRow({
       iconName: 'globe',
@@ -180,7 +240,7 @@ export function render() {
     ${settingRow({
       iconName: 'wifi', tone: 'sage',
       title: '部署平台',
-      desc: 'Cloudflare Workers · 静态资源托管',
+      desc: 'Cloudflare Workers + D1（SQLite）',
       tail: `<span class="chip chip--sage">全球边缘</span>`,
     })}
     ${settingRow({
@@ -199,23 +259,27 @@ export function render() {
 
        下面的问答与 index.html 的 JSON-LD、<noscript> 三处必须逐字一致，
        scripts/check.mjs 会核对。注意 dt/dd 必须各占一行：跨行断开会插入
-       空格，核对时对不上。 -->
+       空格，核对时对不上。另外问答正文里**不要放 HTML 标签** ——
+       JSON-LD 那份是纯文本，带标签就对不上了。 -->
   <div class="section-title">${icon('book')}<span>关于本项目</span></div>
   <div class="card card--pad about-prose" style="margin-bottom:12px">
     <p>
       「盯盘侠 PanWatch H5」是自托管 AI 盯盘助手 <strong>PanWatch</strong> 的移动端版本：
-      把持仓、自选、提醒与模拟盘搬进浏览器，打开网页就能用，不需要安装 App，
-      也不需要服务器。
+      把持仓、自选、提醒与模拟盘搬进浏览器，打开网页就能用，不需要安装 App。
     </p>
     <p>
-      界面内所有行情、持仓、AI 评分与投资结论都是<strong>内置的演示数据</strong>，
-      由确定性伪随机序列生成，不来自任何真实行情源，也不构成投资建议。
-      这是一个用来展示界面与交互的开源前端模板 —— 把其中任何一个数字
-      当成实时行情，都会得出错误结论。
+      数据有两种来源，界面会明确标出当前用的是哪一种。<strong>配了后端</strong>时，
+      一个 Cloudflare Worker 从腾讯财经拉取 A股 / 港股 / 美股的实时行情，
+      缓存进 D1（也就是托管的 SQLite），持仓、自选、提醒这些用户数据也持久化在那里；
+      <strong>没有后端</strong>时，站点按纯静态模式运行，所有数字都是内置的演示数据，
+      由确定性伪随机序列生成，不联网，也不构成投资建议。
     </p>
     <p>
       工程上刻意保持<strong>零构建、零运行时依赖</strong>：没有打包步骤，没有框架，
-      图表是手写的 SVG。偏好设置只存在浏览器本地，不上传任何数据。源码基于
+      图表是手写的 SVG。前端与 Worker 共用同一份代码 ——
+      <code>js/symbols.js</code> 同时被浏览器和 Worker 引入，
+      所以「股票代码 ↔ 上游 symbol 怎么换算」只有一处定义，不会两边漂移。
+      源码基于
       <a href="https://github.com/jackhuo2/PanWatch" target="_blank" rel="noopener">jackhuo2/PanWatch</a>
       改造，以 MIT 许可开源在
       <a href="https://github.com/KKfox100/PanWatch-H5" target="_blank" rel="noopener">KKfox100/PanWatch-H5</a>。
@@ -226,15 +290,15 @@ export function render() {
   <div class="card card--pad" style="margin-bottom:14px">
     <dl class="about-faq">
       <dt>盯盘侠 PanWatch H5 需要服务器或数据库吗？</dt>
-      <dd>不需要。它是纯静态站点，没有后端。偏好设置存在浏览器的 localStorage 里，不上传任何数据。</dd>
+      <dd>看怎么用。默认部署是纯静态站点，没有后端，数据全部内置；再配上一个 Cloudflare Worker 与 D1 数据库，它就会拉取真实行情，并把持仓、自选、提醒持久化进 D1。两种模式共用同一份前端代码，没探测到后端时会自动回落到演示数据。</dd>
       <dt>它连接真实的行情数据源吗？</dt>
-      <dd>不连接。所有数字都是内置的演示数据，由确定性伪随机序列生成，不随市场变化。要接真实数据需要自行实现后端。</dd>
+      <dd>配了后端就连接。Worker 从腾讯财经拉取 A股、港股、美股的实时行情，缓存进 D1 并按 15 秒的有效期刷新；页面顶栏会明确标出当前显示的是「实时」还是「演示」。没有后端时不联网，所有数字都是内置的演示数据。</dd>
       <dt>支持哪些股票市场？</dt>
       <dd>A股、港股、美股。多币种持仓会按内置汇率折算成人民币，统一计算市值与盈亏。</dd>
       <dt>为什么界面配色是灰调的？</dt>
       <dd>色板取自莫兰迪静物画的灰调，所有颜色都掺入一层暖灰并压低饱和度。涨跌仍严格遵循中国市场习惯：涨红跌绿。全部配色按 WCAG 2.1 验算过对比度。</dd>
       <dt>可以自己部署吗？</dt>
-      <dd>可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers 的静态资源托管。</dd>
+      <dd>可以。项目以 MIT 许可开源，一条 wrangler 命令即可部署到 Cloudflare Workers；要用实时行情，再建一个 D1 数据库并跑一次建表脚本。</dd>
     </dl>
   </div>
 
@@ -251,49 +315,68 @@ export function render() {
   <div style="text-align:center;font-size:11px;color:var(--ink-3);line-height:1.7;padding-bottom:8px">
     <div>盯盘侠 PanWatch H5 · 莫兰迪主题</div>
     <div>基于 <b>jackhuo2/PanWatch</b> 改造 · MIT License</div>
-    <div style="margin-top:6px">本页所有数据均为内置演示数据，不构成投资建议</div>
+    <div style="margin-top:6px">
+      ${online ? '行情来自腾讯财经，仅供参考，不构成投资建议' : '当前为演示数据，不构成投资建议'}</div>
   </div>
   `;
 }
 
 /* --------------------------------------------------------------------------
-   弹层：配置 API 地址
+   弹层：后端地址与写入令牌
    -------------------------------------------------------------------------- */
 
 export function sheetApi() {
   const s = store.get();
   return {
-    title: '后端 API 地址',
+    title: '后端地址与令牌',
     body: `
       <div class="notice">${icon('info')}
-        <span>当前为<b>纯静态 H5</b>，默认使用内置演示数据。
-          如需接入真实行情与 AI 分析，请填写你自建的 PanWatch 后端地址。</span>
+        <span><b>留空 = 同源</b>：静态资源和 API 由同一个 Cloudflare Worker 提供，
+          这是本项目的标准部署方式，通常不需要填。</span>
       </div>
+
       <div class="field">
         <label class="field__label">API Base URL</label>
-        <input class="input" placeholder="https://your-panwatch.example.com"
+        <input class="input" placeholder="留空即同源"
           value="${esc(s.settings.apiBase)}" data-input="api-base">
         <div class="field__hint">
-          原项目后端为 FastAPI（<b>python server.py</b>，默认 :8000），需自行部署在支持 Python 的服务器上。
-          Cloudflare Workers 无法运行该后端，因此 H5 与后端是分离的。
+          只有把后端单独部署在别的域名时才需要填。跨域需要后端放开来源，
+          否则浏览器会拦下请求。
         </div>
       </div>
+
       <div class="field">
-        <label class="field__label">跨域说明</label>
+        <label class="field__label">写入令牌（WRITE_TOKEN）</label>
+        <input class="input" type="password" placeholder="与服务端 WRITE_TOKEN 一致"
+          value="${esc(s.settings.apiToken)}" data-input="api-token" autocomplete="off">
         <div class="field__hint">
-          浏览器直连自建后端会受 CORS 限制，需在后端放开来源，
-          或在 Workers 上加一层代理路由（见仓库 README 的「接入自建后端」章节）。
+          读取行情和持仓是公开的；<b>改</b>持仓、自选、提醒要带这个令牌。
+          服务端用 <code>npx wrangler secret put WRITE_TOKEN</code> 设置，
+          两边一致才写得进去。
         </div>
       </div>
+
+      <div class="notice">${icon('warn')}
+        <span>令牌存在浏览器 localStorage 里 —— 能打开这个页面的人就能读到它。
+          这是「单租户、无登录」方案的固有代价，<b>别把它当成真正的账号体系</b>。
+          要多人隔离就得自己加登录。</span>
+      </div>
+
       <div class="field">
         <label class="field__label">连通性</label>
         <button class="btn btn--sm btn--ghost" data-act="test-api" type="button">${icon('wifi')}测试连接</button>
       </div>`,
     okText: '保存',
     onOk: (root) => {
-      const v = root.querySelector('[data-input="api-base"]')?.value.trim() || '';
-      store.setSetting('apiBase', v);
-      return { toast: v ? '已保存，下次刷新将尝试连接' : '已清空，回到演示数据模式' };
+      const base = root.querySelector('[data-input="api-base"]')?.value.trim() || '';
+      const token = root.querySelector('[data-input="api-token"]')?.value.trim() || '';
+      store.setSetting('apiBase', base);
+      store.setSetting('apiToken', token);
+      // 地址或令牌变了就重新探测一次，让顶栏那个标识立刻反映真实状态，
+      // 而不是等用户下次刷新页面才知道自己填错了。
+      // 不 await —— 弹层要立刻关掉；探测结果通过订阅自动重渲染。
+      reconnect();
+      return { toast: '已保存，正在重新连接…' };
     },
   };
 }

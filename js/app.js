@@ -7,6 +7,8 @@
 import { icon } from './icons.js';
 import { h, frag, esc, hhmm, marketPhase, phaseLabel } from './utils.js';
 import * as store from './store.js';
+import * as liveMod from './live.js';
+import { findStock } from './data.js';
 import { pageHead } from './ui.js';
 
 import * as homeView from './views/home.js';
@@ -76,6 +78,11 @@ function buildShell() {
           <span class="brand__ver">H5</span>
         </div>
         <span class="appbar__spacer"></span>
+        <!-- 数据源标识：必须一眼看出现在看的是真行情还是演示数据。
+             点击 = 立即刷新。 -->
+        <button class="srcchip" data-src-chip data-act="refresh" type="button" title="行情数据源">
+          <span class="srcchip__dot"></span><span data-src-label>演示</span>
+        </button>
         <span class="chip chip--outline" data-phase></span>
         <button class="icon-btn" data-nav="settings" title="设置">${icon('gear')}</button>
       </div>
@@ -115,6 +122,15 @@ function render(preserveScroll = false) {
     phaseEl.textContent = `${phaseLabel(p)} ${hhmm()}`;
   }
 
+  updateSourceChip();
+
+  // 个股详情页：顺手拉一次真实日 K。
+  // 不 await —— 拿到了会触发重渲染，没必要把首屏卡在网络上。
+  if (name === 'stock' && param) {
+    const s = findStock(param);
+    if (s) liveMod.loadKline(s.code, s.market);
+  }
+
   if (preserveScroll) window.scrollTo(0, y);
   else window.scrollTo(0, 0);
 
@@ -128,6 +144,80 @@ function titleFor(name, param) {
   }
   const t = TABS.find((x) => x.key === name);
   return t ? `${t.label} · 盯盘侠 H5` : '盯盘侠 PanWatch H5';
+}
+
+/* --------------------------------------------------------------------------
+   数据源标识（顶栏）
+
+   这不是装饰。整站的价格有两个来源：
+     · 内置演示数据 —— 固定的样本值，永远不动
+     · 后端实时行情 —— 来自腾讯财经，随盘变动
+
+   两者长得一模一样。如果不标出来，用户会把一条固定的假价格当成实时价格
+   去决策 —— 这比页面报错严重得多。所以这个小标签是硬需求：
+   一眼能看出「现在看的是真的还是假的」，点击还能立刻重拉一次。
+   -------------------------------------------------------------------------- */
+
+function updateSourceChip() {
+  const chip = document.querySelector('[data-src-chip]');
+  if (!chip) return;
+  const label = chip.querySelector('[data-src-label]');
+  const st = liveMod.live;
+
+  // 默认按「离线演示」渲染：没有后端是正常状态，不该看着像故障
+  let mod = 'srcchip--offline';
+  let text = '演示';
+  let tip = '未连接后端，当前显示内置演示数据';
+
+  if (st.status === 'probing') {
+    mod = 'srcchip--probing';
+    text = '连接中';
+    tip = '正在探测行情服务…';
+  } else if (st.status === 'online') {
+    if (!st.lastSync) {
+      /* 后端通了，但第一份行情还没落地 —— 屏幕上的价格还是内置样本。
+         这个窗口通常不到一秒，但截图/弱网下会被看到，而且此时说「实时」
+         是假的。所以宁可先说「同步中」。 */
+      if (st.lastError) {
+        mod = 'srcchip--stale';
+        text = '无行情';
+        tip = `后端已连接，但拉不到行情：${st.lastError}`;
+      } else {
+        mod = 'srcchip--probing';
+        text = '同步中';
+        tip = '后端已连接，正在拉取第一份行情…';
+      }
+    } else {
+      // 标签只放最短的词 —— 顶栏宽度很紧张，完整说明交给 title。
+      // 「在线」用蓝点而不是绿点：绿在全站已经表示「跌」了。
+      mod = st.staleCount > 0 ? 'srcchip--stale' : 'srcchip--online';
+      text = st.staleCount > 0 ? '延迟' : '实时';
+      tip = `行情源：腾讯财经 · 更新于 ${liveMod.sinceLabel()}`;
+      if (st.staleCount > 0) tip += `（${st.staleCount} 个代码暂时回落到缓存）`;
+      if (st.applied) tip += ` · 已覆盖 ${st.applied} 个报价`;
+      if (st.missing) tip += ` · ${st.missing} 个代码暂无报价`;
+      if (st.lastError) tip += ` · 最近异常：${st.lastError}`;
+    }
+  } else if (st.status === 'offline') {
+    // 「连上过再断线」和「从没连上」必须分开说：
+    // 前者屏幕上摆的是服务端的旧数据，只是不再更新了；
+    // 后者才是干干净净的内置演示样本。混为一谈就是撒谎。
+    if (st.everSynced) {
+      mod = 'srcchip--stale';
+      text = '已断开';
+      tip = '与后端的连接已断开，屏幕上是上次同步的数据，不会再更新';
+    } else {
+      text = '演示';
+      tip = '未连接后端，当前显示内置演示数据';
+    }
+    if (st.lastError) tip += ` · ${st.lastError}`;
+  }
+
+  // 只改 class 字符串里的 srcchip 前缀段，避免把基类覆盖掉
+  chip.className = `srcchip ${mod}`;
+  if (label) label.textContent = text;
+  chip.title = `${tip} · 点击立即刷新`;
+  chip.setAttribute('aria-label', `行情数据源：${text}`);
 }
 
 /* --------------------------------------------------------------------------
@@ -193,7 +283,19 @@ function closeSheet() {
    -------------------------------------------------------------------------- */
 
 const ACTIONS = {
-  refresh: () => toast('行情已刷新', 'refresh'),
+  /* 顶栏数据源标识 + 首页/持仓页/个股页的刷新按钮，共用这一个动作。
+     离线时必须说实话 —— 不能弹一句「行情已刷新」然后价格一动没动。 */
+  refresh: async () => {
+    if (!liveMod.isOnline()) {
+      toast('未连接后端，当前显示内置演示数据', 'info');
+      return;
+    }
+    toast('正在刷新行情…', 'refresh');
+    await liveMod.syncNow();
+    const s = liveMod.live;
+    if (s.lastError && !s.applied) toast(`刷新失败：${s.lastError}`, 'warn');
+    else toast(`已同步 · ${liveMod.sinceLabel()}`, 'check');
+  },
   scan: () => openSheet(portfolioView.sheetScan()),
   'add-position': () => openSheet(portfolioView.sheetAddPosition()),
   'add-watch': () => toast('请从机会页或搜索结果添加关注', 'search'),
@@ -390,10 +492,16 @@ function bindEvents() {
     const rk = t.closest('[data-risk]');
     if (rk) { store.setSetting('riskLevel', rk.dataset.risk); toast('风险偏好已更新'); return; }
 
-    // 自动刷新开关（持仓页）
-    const ta = t.closest('[data-act="toggle-auto-refresh"]');
+    // 自动刷新开关。
+    // 持仓页用 data-act，设置页用 data-setting-toggle —— 两个选择器都得认。
+    // 只认前者的话，设置页那个开关点了完全没反应（而且控制台一声不吭）。
+    const ta = t.closest('[data-act="toggle-auto-refresh"], [data-setting-toggle="autoRefresh"]');
     if (ta) {
-      store.setSetting('autoRefresh', !store.get().settings.autoRefresh);
+      const next = !store.get().settings.autoRefresh;
+      store.setSetting('autoRefresh', next);
+      // 立刻启停轮询，不用等 800ms 的设置防抖
+      if (next) liveMod.startAuto(); else liveMod.stopAuto();
+      toast(next ? '已开启自动刷新' : '已关闭自动刷新');
       return;
     }
 
@@ -402,7 +510,15 @@ function bindEvents() {
     if (al) {
       const id = al.dataset.toggleAlert;
       const next = !(al.getAttribute('aria-checked') === 'true');
+      // 两份都写：
+      //   store.alertStates 是历史遗留的本地覆盖层，界面读的是它；
+      //   data.js 的 ALERTS[].enabled 才是要持久化进 D1 的事实。
       store.toggleAlert(id, next);
+      liveMod.toggleAlert(id, next).then((res) => {
+        // 离线时不提示「没保存」—— 顶栏已经写着「演示」了，每点一次弹一次太吵。
+        // 但真出错（比如 token 不对）必须说，因为那是用户能修的东西。
+        if (res && !res.ok && res.reason && liveMod.isOnline()) toast(res.reason, 'warn');
+      });
       toast(next ? '提醒已启用' : '提醒已关闭');
       return;
     }
@@ -474,6 +590,20 @@ function boot() {
   buildShell();
   bindEvents();
   render();
+
+  /* 实时层。
+     刻意不 await —— 探测后端可能要几秒（失败还要等到 12s 超时），
+     首屏绝不能等它。init() 内部失败就是离线，界面继续用内置数据，
+     顶栏那个标识会说明「现在看的是演示数据」。
+
+     订阅它而不是在每个视图里手动刷新：行情一变，全站的价格、市值、
+     盈亏、K 线都得跟着动。preserveScroll 必须为 true —— 否则每 30 秒
+     自动刷新一次就把正在看列表的用户弹回页首。 */
+  liveMod.subscribe(() => {
+    if (sheetEls.length) return;   // 弹层打开时不重绘底层，避免打断输入
+    render(true);
+  });
+  liveMod.init();
 
   // 时段变化时刷新顶栏标签（每分钟）
   setInterval(() => {

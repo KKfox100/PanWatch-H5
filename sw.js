@@ -7,7 +7,7 @@
    改版本号即可让所有客户端拿到新资源。
    ========================================================================== */
 
-const VERSION = 'v1.1.0';
+const VERSION = 'v1.2.0';
 const CACHE = `panwatch-h5-${VERSION}`;
 
 /* 应用外壳的路径。注意应用是哈希路由，所以外壳永远是 '/' 或 '/index.html'，
@@ -28,6 +28,9 @@ const PRECACHE = [
   './js/charts.js',
   './js/ui.js',
   './js/data.js',
+  './js/symbols.js',
+  './js/api.js',
+  './js/live.js',
   './js/views/home.js',
   './js/views/portfolio.js',
   './js/views/opportunities.js',
@@ -65,6 +68,13 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(request.url);
   // 只接管同源请求，跨域 API 交给浏览器
   if (url.origin !== self.location.origin) return;
+
+  /* ⚠️ /api/* 必须直接放行，绝不能进缓存。
+     下面那条静态资源分支是 cache-first。而 /api/quotes 恰好是同源 GET、
+     状态 200、type 为 basic —— 四个条件全中，响应会被写进 Cache Storage，
+     之后每次都在缓存里命中：用户看到的价格永远停在第一次拉取的那一刻，
+     而且页面上没有任何地方看得出哪里坏了。这类 bug 极难排查。 */
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return;
 
   // 导航：网络优先
   if (request.mode === 'navigate') {

@@ -3,15 +3,21 @@
   "name": "panwatch-h5",
   "compatibility_date": "2026-09-01",
 
-  // 纯静态站点：没有服务端逻辑，Workers 只负责把资源从边缘节点发出去。
-  // directory 用 "." —— 项目根即站点根，index.html 直接对外。
+  // Worker 入口。项目从「纯静态资源」变成了「Worker + 静态资源」：
+  //   /api/*  →  Worker 处理（实时行情代理 + D1 读写）
+  //   其余    →  静态资源，行为与之前完全一致
   //
+  // 之所以要一个 Worker：行情接口不给跨域，而且写入 token 绝不能出现在
+  // 前端代码里 —— 这两件事都必须在服务端做。SQLite（D1）也就顺理成章了。
+  "main": "worker/index.js",
+
   // ⚠️ assets 配置里**没有** exclude 字段。想排除文件要用根目录的
   //    .assetsignore（.gitignore 语法），否则 wrangler 会把整个仓库
   //    ——包括 .git —— 一起上传。wrangler 对多余字段只警告不报错，
   //    很容易部署完才发现源码和版本历史都挂到了公网。
   "assets": {
     "directory": ".",
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
 
     // 原本这里是 "single-page-application"，已改掉。
@@ -23,13 +29,41 @@
     // 所以 SPA 回退在这里只会做一件事：把任意乱敲的地址（/abc、/x/y/z）
     // 全部变成「返回 200、内容与应用首页完全相同」的页面。搜索引擎会
     // 把它们当有效页面收录，形成无限个内容重复的软 404。
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+
+    // 没有这一行，/api/* 会先被当成「找不到的静态资源」，直接返回 404.html，
+    // Worker 根本不会被调用 —— 表现是接口全部 404，而 Worker 日志里
+    // 一条记录都没有，很难查。写 /api 与 /api/* 两条是因为 glob 的 `/*`
+    // 不匹配裸路径本身。
+    "run_worker_first": ["/api", "/api/*"]
   },
+
+  // D1 = 托管的 SQLite。本地 `wrangler dev` 用的是 .wrangler/state 下的
+  // 真实 SQLite 文件，不需要联网、也不需要先建库。
+  //
+  // 部署前必须先建库，再把 id 填到下面（命令见 README「实时行情与持久化」）：
+  //   npx wrangler d1 create panwatch-db
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "panwatch-db",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
 
   "observability": { "enabled": true },
 
   "vars": {
     "APP_NAME": "PanWatch H5",
-    "APP_VERSION": "0.1.0-h5"
+    "APP_VERSION": "0.2.0-h5",
+
+    // 行情缓存 TTL（秒）。盘中 15 秒足够，再短只是白白打上游。
+    "QUOTE_TTL": "15",
+
+    // 写入 token 的**默认值留空** —— 空表示「不校验」，
+    // 方便本地开发。生产环境请用 secret 覆盖：
+    //   npx wrangler secret put WRITE_TOKEN
+    // 设了 secret 之后，写接口就要求 Authorization: Bearer <token>。
+    "WRITE_TOKEN": ""
   }
 }
